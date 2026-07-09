@@ -1,0 +1,328 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  dailyTransactions DailyTransaction[]
+  expenseEntries    ExpenseEntry[]
+  stockMovements    StockMovement[]
+  employees         Employee[]
+  salaryClaimsPaying BranchSalaryClaim[] @relation("PayingBranch")
+  salaryClaimsOwing  BranchSalaryClaim[] @relation("OwingBranch")
+  capexEntries       CapexEntry[]
+  interPersonLoans   InterPersonLoan[]
+}
+
+enum CapexCategory {
+  RENOVASI
+  SEWA
+  PERLENGKAPAN
+  LAINNYA
+}
+
+model CapexEntry {
+  id            String        @id @default(cuid())
+  branchId      String
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  date          DateTime      @db.Date
+  keterangan    String
+  qty           Int           @default(1)
+  hargaSatuan   Decimal       @db.Decimal(14, 2)
+  total         Decimal       @db.Decimal(14, 2)
+  category      CapexCategory @default(LAINNYA)
+
+  createdAt DateTime @default(now())
+
+  @@index([branchId, date])
+}
+
+// Piutang/uang titip antar orang (owner/mitra, bukan karyawan formal) - dari histori sheet Modal.
+model InterPersonLoan {
+  id           String    @id @default(cuid())
+  date         DateTime  @db.Date
+  fromPerson   String
+  toPerson     String
+  amount       Decimal   @db.Decimal(14, 2)
+  keterangan   String?
+  branchId     String?
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  isSettled    Boolean   @default(false)
+  settledAt    DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+enum CleoTipe {
+  PENDAPATAN
+  PENGELUARAN
+}
+
+enum AttendanceStatus {
+  HADIR
+  CUTI
+  SAKIT
+  ALPHA
+  LIBUR
+}
+
+model Employee {
+  id            String   @id @default(cuid())
+  name          String
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  position      String?
+  gajiPokok     Decimal  @default(0) @db.Decimal(14, 2)
+  tanggalMasuk  DateTime @db.Date
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  attendances Attendance[]
+  kasbons     Kasbon[]
+  payrolls    Payroll[]
+  salaryClaims BranchSalaryClaim[]
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  employeeId String
+  employee   Employee         @relation(fields: [employeeId], references: [id])
+  date       DateTime         @db.Date
+  status     AttendanceStatus
+
+  createdAt DateTime @default(now())
+
+  @@unique([employeeId, date])
+  @@index([employeeId, date])
+}
+
+model Kasbon {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  date       DateTime @db.Date
+  amount     Decimal  @db.Decimal(14, 2)
+  keterangan String?
+
+  createdAt DateTime @default(now())
+
+  @@index([employeeId, date])
+}
+
+enum PayrollStatus {
+  DRAFT
+  PAID
+}
+
+// Snapshot hasil perhitungan gaji per karyawan per periode (bulan). Field angka disimpan
+// sebagai snapshot (bukan dihitung ulang tiap render) supaya slip gaji tidak berubah
+// meski data absensi/kasbon direvisi setelah payroll di-generate.
+model Payroll {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  periodYear  Int
+  periodMonth Int
+
+  gajiPokokSnapshot Decimal @db.Decimal(14, 2)
+  hariEfektifKerja  Int
+  totalMasuk        Int
+  hariLembur        Int
+  gajiPerHari       Decimal @db.Decimal(14, 2)
+
+  gajiPokokProrata Decimal @default(0) @db.Decimal(14, 2)
+  gajiLembur       Decimal @default(0) @db.Decimal(14, 2)
+  uangMakan        Decimal @default(0) @db.Decimal(14, 2)
+  bonus            Decimal @default(0) @db.Decimal(14, 2)
+  thr              Decimal @default(0) @db.Decimal(14, 2)
+
+  totalKasbonDipotong Decimal @default(0) @db.Decimal(14, 2)
+  totalGajiKotor      Decimal @default(0) @db.Decimal(14, 2)
+  sisaGaji            Decimal @default(0) @db.Decimal(14, 2)
+
+  status PayrollStatus @default(DRAFT)
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, periodYear, periodMonth])
+}
+
+// Piutang gaji antar cabang: karyawan cabang lain dibayar dulu lewat Ekek, lalu ditagih ke cabang asal.
+model BranchSalaryClaim {
+  id             String   @id @default(cuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  payingBranchId String
+  payingBranch   Branch   @relation("PayingBranch", fields: [payingBranchId], references: [id])
+  owingBranchId  String
+  owingBranch    Branch   @relation("OwingBranch", fields: [owingBranchId], references: [id])
+
+  date         DateTime @db.Date
+  amount       Decimal  @db.Decimal(14, 2)
+  keterangan   String?
+  isReimbursed Boolean  @default(false)
+  reimbursedAt DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+enum StockDirection {
+  IN
+  OUT
+}
+
+enum StockMovementType {
+  PEMBELIAN
+  DISTRIBUSI
+  PENYESUAIAN
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  unit      String   @default("pcs")
+  hpp       Decimal  @default(0) @db.Decimal(14, 2)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  movements StockMovement[]
+}
+
+// branchId null = Gudang pusat. Ledger tunggal: stock level = SUM(IN) - SUM(OUT) per itemId+branchId.
+model StockMovement {
+  id       String             @id @default(cuid())
+  itemId   String
+  item     Item               @relation(fields: [itemId], references: [id])
+  branchId String?
+  branch   Branch?            @relation(fields: [branchId], references: [id])
+  date     DateTime           @db.Date
+
+  direction StockDirection
+  type      StockMovementType
+  qty       Int
+  unitCost  Decimal?          @db.Decimal(14, 2)
+  keterangan String?
+
+  // Menghubungkan sepasang baris OUT+IN pada satu transaksi distribusi
+  pairId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([itemId, branchId])
+  @@index([pairId])
+}
+
+model ExpenseCategory {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  isActive Boolean @default(true)
+
+  expenses ExpenseEntry[]
+}
+
+model DailyTransaction {
+  id       String   @id @default(cuid())
+  branchId String
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  date     DateTime @db.Date
+
+  brilinkPendapatan  Decimal @default(0) @db.Decimal(14, 2)
+  brilinkFee         Decimal @default(0) @db.Decimal(14, 2)
+
+  lainKeterangan  String?
+  lainPendapatan  Decimal @default(0) @db.Decimal(14, 2)
+  lainPengeluaran Decimal @default(0) @db.Decimal(14, 2)
+
+  asetKeterangan  String?
+  asetPendapatan  Decimal @default(0) @db.Decimal(14, 2)
+  asetPengeluaran Decimal @default(0) @db.Decimal(14, 2)
+
+  // Cleo Member Struk: Ekek (pusat) jual ke cabang lain = Pendapatan bagi Ekek,
+  // sementara cabang lain beli dari Ekek = Pengeluaran bagi cabang tsb. Tipe dipilih manual
+  // per baris karena bisa berbeda tergantung siapa yang input.
+  cleoJumlah Decimal  @default(0) @db.Decimal(14, 2)
+  cleoTipe   CleoTipe @default(PENDAPATAN)
+  keteranganUmum  String?
+
+  operasional Decimal @default(0) @db.Decimal(14, 2)
+  pv          Decimal @default(0) @db.Decimal(14, 2)
+  gajiKasbon  Decimal @default(0) @db.Decimal(14, 2)
+  plusMinus   Decimal @default(0) @db.Decimal(14, 2)
+
+  saldoAwal  Decimal @default(0) @db.Decimal(14, 2)
+  saldoAkhir Decimal @default(0) @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tellerBreakdown TransactionTellerBreakdown[]
+
+  @@unique([branchId, date])
+  @@index([branchId, date])
+}
+
+model TransactionTellerBreakdown {
+  id                 String           @id @default(cuid())
+  dailyTransactionId String
+  dailyTransaction   DailyTransaction @relation(fields: [dailyTransactionId], references: [id], onDelete: Cascade)
+
+  tellerName String
+  tf         Decimal @default(0) @db.Decimal(14, 2)
+  eWallet    Decimal @default(0) @db.Decimal(14, 2)
+  itTt       Decimal @default(0) @db.Decimal(14, 2)
+
+  @@index([dailyTransactionId])
+}
+
+model ExpenseEntry {
+  id         String   @id @default(cuid())
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  date       DateTime @db.Date
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  keterangan       String
+  totalPembayaran  Decimal @default(0) @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([branchId, date])
+}
+
+// Selalu satu baris saja (singleton) - pengaturan yang berlaku untuk seluruh aplikasi.
+model AppSettings {
+  id                   String  @id @default(cuid())
+  statusSangatBaik     Decimal @default(30000000) @db.Decimal(14, 2)
+  statusBaik           Decimal @default(15000000) @db.Decimal(14, 2)
+  statusPerluPerhatian Decimal @default(5000000) @db.Decimal(14, 2)
+  stockKritisThreshold Int     @default(10)
+
+  updatedAt DateTime @updatedAt
+}
