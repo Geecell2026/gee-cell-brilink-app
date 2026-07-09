@@ -45,3 +45,6 @@ next-env.d.ts
 
 # kredensial migrasi - jangan pernah di-commit
 /secrets
+
+# data hasil export/migrasi - berisi data bisnis riil, jangan di-commit
+scripts/migrate-from-sheets/local-data-export.json
