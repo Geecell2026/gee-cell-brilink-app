@@ -15,7 +15,14 @@ export type AnalisisFilter = {
 };
 
 export async function buildAnalisisData(filter: AnalisisFilter, targetTransaksiHarian: number | null) {
-  const raw = await getRawTransaksiData(filter.branchId);
+  // allPoints dipakai lagi di bawah untuk pertumbuhanPeriode (bandingkan ke
+  // periode sebelumnya dengan panjang yang sama) - jadi batas fetch-nya harus
+  // mundur sejauh itu, bukan cuma sejak filter.startDate.
+  const sejakTanggal =
+    filter.startDate && filter.endDate
+      ? new Date(filter.startDate.getTime() - (filter.endDate.getTime() - filter.startDate.getTime()))
+      : undefined;
+  const raw = await getRawTransaksiData(filter.branchId, sejakTanggal);
   const allPoints = perkayaDailyPoints(raw);
 
   let points: DailyPoint[] = allPoints;
