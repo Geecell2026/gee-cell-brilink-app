@@ -14,15 +14,28 @@ export type AnalisisFilter = {
   hariFilter?: string[]; // nama hari, misal ["Jumat", "Sabtu"]
 };
 
+// MA14 butuh look-back 13 entri sebelum awal window - dilebihkan jadi 30 hari
+// kalender supaya tetap cukup walau "Semua Cabang" dipilih (banyak baris per
+// hari) atau data harian jarang (sedikit baris per hari).
+const MA_BUFFER_HARI = 30;
+
 export async function buildAnalisisData(filter: AnalisisFilter, targetTransaksiHarian: number | null) {
   // allPoints dipakai lagi di bawah untuk pertumbuhanPeriode (bandingkan ke
   // periode sebelumnya dengan panjang yang sama) - jadi batas fetch-nya harus
-  // mundur sejauh itu, bukan cuma sejak filter.startDate.
-  const sejakTanggal =
-    filter.startDate && filter.endDate
-      ? new Date(filter.startDate.getTime() - (filter.endDate.getTime() - filter.startDate.getTime()))
-      : undefined;
-  const raw = await getRawTransaksiData(filter.branchId, sejakTanggal);
+  // mundur sejauh itu, bukan cuma sejak filter.startDate. maBufferStart dipakai
+  // supaya MA7/MA14 di beberapa hari pertama window punya look-back asli
+  // (bukan null) - lihat perhitungan ma7/ma14 di bawah.
+  let sejakTanggal: Date | undefined;
+  let maBufferStart: Date | undefined;
+  if (filter.startDate && filter.endDate) {
+    const periodeSebelumnyaStart = new Date(
+      filter.startDate.getTime() - (filter.endDate.getTime() - filter.startDate.getTime())
+    );
+    maBufferStart = new Date(filter.startDate.getTime() - MA_BUFFER_HARI * 86400000);
+    sejakTanggal =
+      periodeSebelumnyaStart.getTime() < maBufferStart.getTime() ? periodeSebelumnyaStart : maBufferStart;
+  }
+  const raw = await getRawTransaksiData(filter.branchId, sejakTanggal, filter.endDate);
   const allPoints = perkayaDailyPoints(raw);
 
   let points: DailyPoint[] = allPoints;
@@ -36,8 +49,23 @@ export async function buildAnalisisData(filter: AnalisisFilter, targetTransaksiH
   const values = points.map((p) => p.totalTransaksi);
   const stats = hitungStatistikDeskriptif(values);
   const stabilitas = klasifikasiStabilitas(stats.koefisienVariasi);
-  const ma7 = movingAverage(values, 7);
-  const ma14 = movingAverage(values, 14);
+
+  // ma7/ma14 dihitung dari deret yang dilebarkan ke belakang (maBufferStart..endDate)
+  // supaya hari-hari pertama window tidak otomatis null karena kekurangan look-back,
+  // lalu dipotong ke panjang `points` di ujung deret hasilnya (index-nya tetap
+  // selaras 1:1 dengan `points`, dipakai chart-helpers.ts). `points`/`values`/`stats`
+  // sendiri TIDAK ikut melebar - tetap persis window filter aktif seperti sebelumnya.
+  const pointsUntukMA = maBufferStart
+    ? allPoints
+        .filter((p) => p.date.getTime() >= maBufferStart!.getTime() && p.date.getTime() < filter.endDate!.getTime())
+        .filter((p) => !filter.hariFilter?.length || filter.hariFilter.includes(p.namaHari))
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+    : points;
+  const valuesUntukMA = pointsUntukMA.map((p) => p.totalTransaksi);
+  const ma7Full = movingAverage(valuesUntukMA, 7);
+  const ma14Full = movingAverage(valuesUntukMA, 14);
+  const ma7 = points.length > 0 ? ma7Full.slice(ma7Full.length - points.length) : [];
+  const ma14 = points.length > 0 ? ma14Full.slice(ma14Full.length - points.length) : [];
 
   const mingguan = agregasiMingguan(points);
   const bulanan = agregasiBulanan(points);
