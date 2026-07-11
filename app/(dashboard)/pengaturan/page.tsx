@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getAppSettings } from "@/lib/calculations/settings";
 import { ThresholdForm } from "@/components/threshold-form";
+import { TargetForm } from "@/components/target-form";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { CategoryForm } from "@/components/category-form";
 import { toggleExpenseCategoryActive } from "@/actions/pengaturan";
@@ -28,6 +29,11 @@ export default async function PengaturanPage() {
             stockKritisThreshold: settings.stockKritisThreshold,
           }}
         />
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-neutral-800">Target Transaksi Harian (Analisis Transaksi)</h2>
+        <TargetForm defaultValue={settings.targetTransaksiHarian} />
       </div>
 
       <div>

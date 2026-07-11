@@ -6,6 +6,8 @@ import {
   updateDailyTransaction,
   type TransaksiFormState,
 } from "@/actions/transaksi";
+import { TransactionCurrencyInput } from "@/components/transaction-currency-input";
+import { parseRupiahInput } from "@/lib/format/currency-input";
 
 type Branch = { id: string; name: string };
 type Category = { id: string; name: string };
@@ -129,17 +131,14 @@ export function TransaksiForm({
             className={inputClass}
           />
         </div>
-        <div className="space-y-1">
-          <label className={labelClass}>Saldo Awal</label>
-          <input type="number" name="saldoAwal" defaultValue={initialData?.saldoAwal ?? 0} className={inputClass} />
-        </div>
+        <TransactionCurrencyInput label="Saldo Awal" name="saldoAwal" defaultValue={initialData?.saldoAwal} />
       </section>
 
       <section className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-neutral-800">Brilink/Atm Mini</h2>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Pendapatan Adm" name="brilinkPendapatan" defaultValue={initialData?.brilinkPendapatan} />
-          <Field label="Fee" name="brilinkFee" defaultValue={initialData?.brilinkFee} />
+          <TransactionCurrencyInput label="Pendapatan Adm" name="brilinkPendapatan" defaultValue={initialData?.brilinkPendapatan} />
+          <TransactionCurrencyInput label="Fee" name="brilinkFee" defaultValue={initialData?.brilinkFee} />
         </div>
       </section>
 
@@ -150,8 +149,8 @@ export function TransaksiForm({
             <label className={labelClass}>Keterangan</label>
             <input name="lainKeterangan" defaultValue={initialData?.lainKeterangan} className={inputClass} />
           </div>
-          <Field label="Pendapatan" name="lainPendapatan" defaultValue={initialData?.lainPendapatan} />
-          <Field label="Pengeluaran" name="lainPengeluaran" defaultValue={initialData?.lainPengeluaran} />
+          <TransactionCurrencyInput label="Pendapatan" name="lainPendapatan" defaultValue={initialData?.lainPendapatan} />
+          <TransactionCurrencyInput label="Pengeluaran" name="lainPengeluaran" defaultValue={initialData?.lainPengeluaran} />
         </div>
       </section>
 
@@ -162,15 +161,15 @@ export function TransaksiForm({
             <label className={labelClass}>Keterangan</label>
             <input name="asetKeterangan" defaultValue={initialData?.asetKeterangan} className={inputClass} />
           </div>
-          <Field label="Pendapatan" name="asetPendapatan" defaultValue={initialData?.asetPendapatan} />
-          <Field label="Pengeluaran" name="asetPengeluaran" defaultValue={initialData?.asetPengeluaran} />
+          <TransactionCurrencyInput label="Pendapatan" name="asetPendapatan" defaultValue={initialData?.asetPendapatan} />
+          <TransactionCurrencyInput label="Pengeluaran" name="asetPengeluaran" defaultValue={initialData?.asetPengeluaran} />
         </div>
       </section>
 
       <section className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-neutral-800">Lainnya</h2>
         <div className="grid grid-cols-3 gap-4">
-          <Field label="Jumlah Cleo Member Struk" name="cleoJumlah" defaultValue={initialData?.cleoJumlah} />
+          <TransactionCurrencyInput label="Jumlah Cleo Member Struk" name="cleoJumlah" defaultValue={initialData?.cleoJumlah} />
           <div className="space-y-1">
             <label className={labelClass}>Tipe Cleo Member Struk</label>
             <select name="cleoTipe" defaultValue={initialData?.cleoTipe ?? "PENDAPATAN"} className={inputClass}>
@@ -178,10 +177,10 @@ export function TransaksiForm({
               <option value="PENGELUARAN">Pengeluaran (cabang beli dari Ekek)</option>
             </select>
           </div>
-          <Field label="Operasional" name="operasional" defaultValue={initialData?.operasional} />
-          <Field label="PV" name="pv" defaultValue={initialData?.pv} />
-          <Field label="Gaji/Kasbon" name="gajiKasbon" defaultValue={initialData?.gajiKasbon} />
-          <Field label="Plus Minus" name="plusMinus" defaultValue={initialData?.plusMinus} />
+          <TransactionCurrencyInput label="Operasional" name="operasional" defaultValue={initialData?.operasional} />
+          <TransactionCurrencyInput label="PV" name="pv" defaultValue={initialData?.pv} />
+          <TransactionCurrencyInput label="Gaji/Kasbon" name="gajiKasbon" defaultValue={initialData?.gajiKasbon} />
+          <TransactionCurrencyInput label="Plus Minus" name="plusMinus" defaultValue={initialData?.plusMinus} allowNegative />
         </div>
         <div className="space-y-1">
           <label className={labelClass}>Keterangan Umum</label>
@@ -226,15 +225,11 @@ export function TransaksiForm({
                 onChange={(e) => updateBiayaRow(i, "keterangan", e.target.value)}
               />
             </div>
-            <div className="space-y-1">
-              <label className={labelClass}>Jumlah</label>
-              <input
-                type="number"
-                className={inputClass}
-                value={row.jumlah}
-                onChange={(e) => updateBiayaRow(i, "jumlah", e.target.value)}
-              />
-            </div>
+            <TransactionCurrencyInput
+              label="Jumlah"
+              value={row.jumlah === "" ? null : parseRupiahInput(row.jumlah, false)}
+              onChange={(value) => updateBiayaRow(i, "jumlah", value === null ? "" : String(value))}
+            />
             <button
               type="button"
               onClick={() => removeBiayaRow(i)}
@@ -315,19 +310,10 @@ export function TransaksiForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {pending ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Transaksi"}
       </button>
     </form>
-  );
-}
-
-function Field({ label, name, defaultValue }: { label: string; name: string; defaultValue?: number }) {
-  return (
-    <div className="space-y-1">
-      <label className={labelClass}>{label}</label>
-      <input type="number" name={name} defaultValue={defaultValue ?? 0} className={inputClass} />
-    </div>
   );
 }

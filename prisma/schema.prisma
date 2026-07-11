@@ -323,6 +323,9 @@ model AppSettings {
   statusBaik           Decimal @default(15000000) @db.Decimal(14, 2)
   statusPerluPerhatian Decimal @default(5000000) @db.Decimal(14, 2)
   stockKritisThreshold Int     @default(10)
+  // Target transaksi harian (opsional) - dipakai modul Analisis Transaksi untuk
+  // KPI pencapaian target. Nullable karena belum semua cabang menetapkan target.
+  targetTransaksiHarian Int?
 
   updatedAt DateTime @updatedAt
 }

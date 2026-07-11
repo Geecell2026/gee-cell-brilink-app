@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hitungTotalPendapatan, hitungTotalPengeluaran } from "@/lib/calculations/transaksi";
-import { getKpiSummary, getDetailPerCabang } from "@/lib/calculations/dashboard";
+import { getDashboardKpi, getDashboardDetailCabang } from "@/lib/calculations/dashboard";
 
 const BULAN = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -40,10 +40,12 @@ export async function GET(req: NextRequest) {
   workbook.created = new Date();
 
   // Sheet 1: Dashboard
-  const [kpi, detailCabang] = await Promise.all([
-    getKpiSummary(year, month),
-    getDetailPerCabang(year, month),
+  const [kpi, detailCabang, karyawanPerCabang] = await Promise.all([
+    getDashboardKpi({ startDate: monthStart, endDate: monthEnd, comparisonMode: "SAMA_BULAN_LALU" }),
+    getDashboardDetailCabang({ startDate: monthStart, endDate: monthEnd, comparisonMode: "SAMA_BULAN_LALU" }),
+    db.employee.groupBy({ by: ["branchId"], where: { isActive: true }, _count: { _all: true } }),
   ]);
+  const karyawanMap = new Map(karyawanPerCabang.map((k) => [k.branchId, k._count._all]));
 
   const dashSheet = workbook.addWorksheet("Dashboard");
   dashSheet.addRow([`REKAP GEE CELL BRILINK - WILAYAH EKEK`]).font = { bold: true, size: 14, name: "Calibri" };
@@ -54,23 +56,31 @@ export async function GET(req: NextRequest) {
   const kpiRows: [string, string | number][] = [
     ["Total Cabang", kpi.totalCabang],
     ["Total Karyawan", kpi.totalKaryawan],
-    ["Omset Bulan Ini", kpi.omsetBulanIni],
+    ["Total Pendapatan", kpi.totalPendapatan],
+    ["Total Biaya", kpi.totalBiaya],
+    ["Laba Operasional", kpi.labaOperasional],
+    ["Total Transaksi", kpi.totalTransaksi],
     ["Total Produk", kpi.totalItem],
     ["Total Stock", kpi.totalStock],
     ["Gaji Bulan Ini", kpi.gajiBulanIni],
   ];
   for (const [label, value] of kpiRows) {
     const row = dashSheet.addRow([label, value]);
-    if (typeof value === "number" && (label.includes("Omset") || label.includes("Gaji"))) {
+    if (typeof value === "number" && (label.includes("Pendapatan") || label.includes("Biaya") || label.includes("Laba") || label.includes("Gaji"))) {
       row.getCell(2).numFmt = CURRENCY_FORMAT;
     }
   }
   dashSheet.addRow([]);
 
-  headerRow(dashSheet, ["Cabang", "Omset", "Transaksi", "Karyawan", "Status"]);
+  headerRow(dashSheet, ["Cabang", "Pendapatan", "Biaya", "Laba", "Total Transaksi", "Karyawan", "Status"]);
   for (const row of detailCabang) {
-    const r = dashSheet.addRow([row.branchName, row.omset, row.transaksi, row.karyawan, row.status]);
+    const r = dashSheet.addRow([
+      row.branchName, row.pendapatan, row.biaya, row.laba, row.totalTransaksi,
+      karyawanMap.get(row.branchId) ?? 0, row.status,
+    ]);
     r.getCell(2).numFmt = CURRENCY_FORMAT;
+    r.getCell(3).numFmt = CURRENCY_FORMAT;
+    r.getCell(4).numFmt = CURRENCY_FORMAT;
   }
   dashSheet.columns.forEach((col) => (col.width = 20));
 
