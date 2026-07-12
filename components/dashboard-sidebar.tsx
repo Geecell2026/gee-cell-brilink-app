@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Smartphone, LayoutDashboard, Receipt, Wallet, Store, Settings, LogOut, Menu, X,
   Package, Users, CalendarCheck, Banknote, FileText, ArrowLeftRight, PiggyBank, HandCoins,
-  BarChart3, CalendarDays, TrendingUp, LineChart, Database,
+  BarChart3, CalendarDays, TrendingUp, LineChart, Database, ChevronsLeft, ChevronsRight,
+  type LucideIcon,
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 
@@ -54,45 +55,93 @@ const NAV_GROUPS = [
   },
 ];
 
-function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
+
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+  collapsed,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  collapsed: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="group relative">
+      <Link
+        href={href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        title={collapsed ? label : undefined}
+        className={
+          (active
+            ? "flex items-center gap-2 rounded-md bg-blue-50 px-2 py-1.5 text-sm font-medium text-blue-700"
+            : "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100") +
+          (collapsed ? " justify-center" : "") +
+          " focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+        }
+      >
+        <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+        {!collapsed && label}
+      </Link>
+      {collapsed && (
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SidebarContent({
+  pathname,
+  onNavigate,
+  collapsed = false,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+  collapsed?: boolean;
+}) {
   return (
     <>
-      <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-4">
+      <div className={`flex items-center gap-2 border-b border-neutral-200 py-4 ${collapsed ? "justify-center px-2" : "px-4"}`}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600">
           <Smartphone className="h-5 w-5 text-white" strokeWidth={2} />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-neutral-900">GEE CELL BRILink</p>
-          <p className="text-xs text-neutral-500">Wilayah Ekek</p>
-        </div>
+        {!collapsed && (
+          <div>
+            <p className="text-sm font-semibold text-neutral-900">GEE CELL BRILink</p>
+            <p className="text-xs text-neutral-500">Wilayah Ekek</p>
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="px-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
-              {group.label}
-            </p>
+            {collapsed ? (
+              <div className="mx-1 border-t border-neutral-200" role="separator" aria-label={group.label} />
+            ) : (
+              <p className="px-2 text-xs font-medium uppercase tracking-wide text-neutral-600">{group.label}</p>
+            )}
             <div className="mt-1 space-y-0.5">
-              {group.items.map((item) => {
-                const active = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onNavigate}
-                    className={
-                      active
-                        ? "flex items-center gap-2 rounded-md bg-blue-50 px-2 py-1.5 text-sm font-medium text-blue-700"
-                        : "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
-                    }
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={2} />
-                    {item.label}
-                  </Link>
-                );
-              })}
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === item.href}
+                  collapsed={collapsed}
+                  onNavigate={onNavigate}
+                />
+              ))}
             </div>
           </div>
         ))}
@@ -101,19 +150,67 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string; onNavigate
       <form action={logoutAction} className="border-t border-neutral-200 p-3">
         <button
           type="submit"
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-500 hover:bg-neutral-100"
+          title={collapsed ? "Keluar" : undefined}
+          className={
+            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-500 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" +
+            (collapsed ? " justify-center" : "")
+          }
         >
-          <LogOut className="h-4 w-4" strokeWidth={2} />
-          Keluar
+          <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
+          {!collapsed && "Keluar"}
         </button>
       </form>
     </>
   );
 }
 
+function ToggleButton({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }): ReactNode {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={collapsed ? "Perbesar sidebar" : "Perkecil sidebar"}
+      aria-expanded={!collapsed}
+      title={collapsed ? "Perbesar sidebar" : "Perkecil sidebar"}
+      className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      {collapsed ? <ChevronsRight className="h-3.5 w-3.5" strokeWidth={2} /> : <ChevronsLeft className="h-3.5 w-3.5" strokeWidth={2} />}
+    </button>
+  );
+}
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Default expanded di server & first client render (sama persis) supaya tidak
+  // ada hydration mismatch - preferensi tersimpan dibaca di useEffect setelah
+  // mount, jadi sempat ada 1 frame "expanded" sebelum flip ke collapsed kalau
+  // itu pilihan user sebelumnya. Trade-off yang disengaja, bukan bug.
+  const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    // Sengaja: localStorage cuma ada di client, baca+sync di sini (bukan lazy
+    // initializer) supaya render pertama client selalu sama dengan server (no mismatch).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored === "true") setCollapsed(true);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  }, [collapsed, mounted]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMobileOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen]);
 
   return (
     <>
@@ -121,8 +218,8 @@ export function DashboardSidebar() {
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="rounded-md p-1.5 text-neutral-600 hover:bg-neutral-100"
-          aria-label="Buka menu"
+          aria-label="Buka menu navigasi"
+          className="rounded-md p-1.5 text-neutral-600 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <Menu className="h-5 w-5" strokeWidth={2} />
         </button>
@@ -134,8 +231,14 @@ export function DashboardSidebar() {
         </div>
       </header>
 
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-neutral-200 bg-white md:flex">
-        <SidebarContent pathname={pathname} />
+      <aside
+        className={
+          "relative hidden shrink-0 flex-col border-r border-neutral-200 bg-white transition-[width] duration-200 ease-in-out md:flex " +
+          (collapsed ? "w-16" : "w-64")
+        }
+      >
+        <ToggleButton collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+        <SidebarContent pathname={pathname} collapsed={collapsed} />
       </aside>
 
       {mobileOpen && (
@@ -145,8 +248,8 @@ export function DashboardSidebar() {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-3 rounded-md p-1 text-neutral-500 hover:bg-neutral-100"
-              aria-label="Tutup menu"
+              aria-label="Tutup menu navigasi"
+              className="absolute right-3 top-3 rounded-md p-1 text-neutral-500 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <X className="h-5 w-5" strokeWidth={2} />
             </button>

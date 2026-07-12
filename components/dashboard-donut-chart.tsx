@@ -11,7 +11,7 @@ const WARNA: Record<KomposisiTransaksi["kategori"], string> = {
 
 export function DashboardDonutChart({ data }: { data: KomposisiTransaksi[] }) {
   if (data.length === 0) {
-    return <p className="text-sm text-neutral-400">Belum ada data transaksi pada periode ini.</p>;
+    return <p className="text-sm text-neutral-500">Belum ada data transaksi pada periode ini.</p>;
   }
 
   const terbesar = [...data].sort((a, b) => b.jumlah - a.jumlah)[0];

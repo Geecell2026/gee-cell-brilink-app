@@ -45,7 +45,7 @@ export default async function AnalisisRingkasanPage({
       <div className="space-y-4">
         <h1 className="text-xl font-semibold text-neutral-900">Analisis Transaksi — Ringkasan Owner</h1>
         <FilterBar branches={branches} branchId={params.branchId} startDate={startDateStr} endDate={endDateStr} hari={hariFilter} action="/analisis" />
-        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400">
+        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
           Belum ada data transaksi untuk periode/filter ini.
         </p>
       </div>
@@ -111,7 +111,7 @@ export default async function AnalisisRingkasanPage({
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-neutral-400">
+        <p className="mt-3 text-xs text-neutral-500">
           Catatan: data historis masih terbatas (kurang dari 3 bulan), proyeksi ini indikasi awal - bukan angka pasti.
         </p>
       </div>
@@ -120,7 +120,7 @@ export default async function AnalisisRingkasanPage({
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-neutral-800">Insight Otomatis</h2>
           {data.insight.length === 0 ? (
-            <p className="text-sm text-neutral-400">Belum cukup data untuk menghasilkan insight.</p>
+            <p className="text-sm text-neutral-500">Belum cukup data untuk menghasilkan insight.</p>
           ) : (
             <ul className="space-y-2">
               {data.insight.map((s, i) => (

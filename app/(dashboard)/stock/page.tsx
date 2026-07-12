@@ -58,7 +58,7 @@ export default async function StockPage() {
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={2 + branches.length} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={2 + branches.length} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada item stock. Tambahkan lewat Master Item.
                 </td>
               </tr>

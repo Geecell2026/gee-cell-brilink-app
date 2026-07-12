@@ -41,7 +41,7 @@ export default async function PiutangPage() {
           <tbody>
             {loans.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={7} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada catatan piutang.
                 </td>
               </tr>

@@ -34,7 +34,7 @@ export function KpiCard({ label, value, icon: Icon, iconBg, iconColor, perubahan
           {Math.abs(perubahanPersen).toFixed(2)}% vs periode lalu
         </p>
       )}
-      {keterangan && <p className="mt-1 text-xs text-neutral-400">{keterangan}</p>}
+      {keterangan && <p className="mt-1 text-xs text-neutral-500">{keterangan}</p>}
     </div>
   );
 }

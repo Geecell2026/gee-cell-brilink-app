@@ -38,7 +38,7 @@ export default async function KaryawanPage() {
           <tbody>
             {employees.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={5} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada karyawan.
                 </td>
               </tr>

@@ -40,7 +40,7 @@ export function DailyTable({ data }: { data: DailyPoint[] }) {
   );
 
   if (data.length === 0) {
-    return <p className="text-sm text-neutral-400">Belum ada data pada periode ini.</p>;
+    return <p className="text-sm text-neutral-500">Belum ada data pada periode ini.</p>;
   }
 
   return (

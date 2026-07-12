@@ -45,7 +45,7 @@ export default async function AnalisisHarianPage({
       <FilterBar branches={branches} branchId={params.branchId} startDate={startDateStr} endDate={endDateStr} hari={hariFilter} action="/analisis/harian" />
 
       {data.points.length === 0 ? (
-        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400">
+        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
           Belum ada data untuk periode/filter ini.
         </p>
       ) : (

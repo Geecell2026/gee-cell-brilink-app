@@ -41,7 +41,7 @@ export default async function AnalisisMingguanBulananPage({
       <FilterBar branches={branches} branchId={params.branchId} startDate={startDateStr} endDate={endDateStr} hari={hariFilter} action="/analisis/mingguan-bulanan" />
 
       {data.points.length === 0 ? (
-        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400">
+        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
           Belum ada data untuk periode/filter ini.
         </p>
       ) : (
@@ -65,7 +65,7 @@ export default async function AnalisisMingguanBulananPage({
                       <td className="py-2">{m.label}</td>
                       <td className="py-2 text-right tabular-nums">{formatAngka(m.total)}</td>
                       <td className="py-2 text-right tabular-nums">{formatAngka(m.rataRataPerHari)}</td>
-                      <td className={`py-2 text-right tabular-nums ${m.pertumbuhanPersen === null ? "text-neutral-400" : m.pertumbuhanPersen >= 0 ? "text-green-700" : "text-red-700"}`}>
+                      <td className={`py-2 text-right tabular-nums ${m.pertumbuhanPersen === null ? "text-neutral-500" : m.pertumbuhanPersen >= 0 ? "text-green-700" : "text-red-700"}`}>
                         {m.pertumbuhanPersen === null ? "-" : `${m.pertumbuhanPersen >= 0 ? "+" : ""}${m.pertumbuhanPersen.toFixed(2)}%`}
                       </td>
                     </tr>
@@ -95,7 +95,7 @@ export default async function AnalisisMingguanBulananPage({
                       <td className="py-2 text-right tabular-nums">{formatAngka(b.total)}</td>
                       <td className="py-2 text-right tabular-nums">{formatAngka(b.rataRataHarian)}</td>
                       <td className="py-2 text-right tabular-nums">{b.hariBuka}</td>
-                      <td className={`py-2 text-right tabular-nums ${b.pertumbuhanPersen === null ? "text-neutral-400" : b.pertumbuhanPersen >= 0 ? "text-green-700" : "text-red-700"}`}>
+                      <td className={`py-2 text-right tabular-nums ${b.pertumbuhanPersen === null ? "text-neutral-500" : b.pertumbuhanPersen >= 0 ? "text-green-700" : "text-red-700"}`}>
                         {b.pertumbuhanPersen === null ? "-" : `${b.pertumbuhanPersen >= 0 ? "+" : ""}${b.pertumbuhanPersen.toFixed(2)}%`}
                       </td>
                     </tr>

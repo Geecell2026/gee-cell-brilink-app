@@ -42,7 +42,7 @@ export default async function CabangJoinPage() {
           <tbody>
             {claims.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={7} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada klaim antar cabang.
                 </td>
               </tr>

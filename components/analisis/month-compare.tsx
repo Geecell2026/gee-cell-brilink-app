@@ -7,7 +7,7 @@ function formatAngka(n: number): string {
 export function MonthCompare({ bulanan }: { bulanan: BulanAgregat[] }) {
   if (bulanan.length < 2) {
     return (
-      <p className="text-sm text-neutral-400">
+      <p className="text-sm text-neutral-500">
         Butuh minimal 2 bulan data untuk perbandingan. Saat ini baru ada {bulanan.length} bulan.
       </p>
     );

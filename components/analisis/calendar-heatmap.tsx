@@ -12,13 +12,13 @@ const LEVEL_STYLE: Record<Level, string> = {
   ramai: "bg-green-600 text-white",
   normal: "bg-blue-300 text-blue-900",
   sepi: "bg-amber-200 text-amber-900",
-  kosong: "bg-neutral-100 text-neutral-300",
+  kosong: "bg-neutral-100 text-neutral-500",
 };
 
 // Kalender aktivitas transaksi (heatmap sederhana per bulan).
 export function CalendarHeatmap({ points }: { points: DailyPoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-neutral-400">Belum ada data untuk ditampilkan.</p>;
+    return <p className="text-sm text-neutral-500">Belum ada data untuk ditampilkan.</p>;
   }
 
   const avg = points.reduce((s, p) => s + p.totalTransaksi, 0) / points.length;
@@ -55,7 +55,7 @@ export function CalendarHeatmap({ points }: { points: DailyPoint[] }) {
             <p className="mb-2 text-xs font-medium text-neutral-600">
               {NAMA_BULAN[bulan - 1]} {tahun}
             </p>
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-neutral-400">
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-neutral-600">
               {HARI_HEADER.map((h) => (
                 <div key={h}>{h}</div>
               ))}

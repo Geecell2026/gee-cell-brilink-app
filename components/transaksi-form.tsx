@@ -254,7 +254,7 @@ export function TransaksiForm({
         </div>
 
         {tellerRows.length === 0 && (
-          <p className="text-xs text-neutral-400">Belum ada baris teller.</p>
+          <p className="text-xs text-neutral-500">Belum ada baris teller.</p>
         )}
 
         {tellerRows.map((row, i) => (

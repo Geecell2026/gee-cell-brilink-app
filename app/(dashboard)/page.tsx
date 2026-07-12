@@ -36,8 +36,8 @@ const STATUS_BADGE: Record<StatusCabangDashboard, string> = {
   Baik: "bg-blue-100 text-blue-700",
   "Perlu Dipantau": "bg-amber-100 text-amber-700",
   "Perlu Evaluasi": "bg-red-100 text-red-700",
-  "Data Belum Cukup": "bg-neutral-200 text-neutral-600",
-  "Belum Beroperasi": "bg-neutral-100 text-neutral-400",
+  "Data Belum Cukup": "bg-neutral-200 text-neutral-700",
+  "Belum Beroperasi": "bg-neutral-100 text-neutral-700",
 };
 
 const KELENGKAPAN_LABEL = (p: number | null) => {
@@ -101,7 +101,7 @@ export default async function DashboardPage({
       </div>
 
       <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">KPI Keuangan</h2>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">KPI Keuangan</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           <KpiCard label="Total Cabang" value={String(kpi.totalCabang)} icon={Store} iconBg="bg-blue-50" iconColor="text-blue-600" />
           <KpiCard
@@ -129,13 +129,13 @@ export default async function DashboardPage({
             iconColor="text-teal-600"
           />
         </div>
-        <p className="mt-2 text-xs text-neutral-400">
+        <p className="mt-2 text-xs text-neutral-500">
           Total Pendapatan terdiri dari pendapatan administrasi, fee Brilink/Atm Mini, pendapatan lain, aset, dan Cleo Member Struk (jika bertipe Pendapatan) — nilai ini bukan total nominal uang transaksi nasabah.
         </p>
       </div>
 
       <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Operasional Wilayah Ekek</h2>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Operasional Wilayah Ekek</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <KpiCard label="Total Karyawan" value={String(kpi.totalKaryawan)} icon={Users} iconBg="bg-indigo-50" iconColor="text-indigo-600" />
           <KpiCard label="Total Produk" value={String(kpi.totalItem)} icon={Package} iconBg="bg-sky-50" iconColor="text-sky-600" />
@@ -145,7 +145,7 @@ export default async function DashboardPage({
       </div>
 
       <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">KPI Transaksi &amp; Kelengkapan</h2>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">KPI Transaksi &amp; Kelengkapan</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           <KpiCard
             label="Total Transaksi"
@@ -210,7 +210,7 @@ export default async function DashboardPage({
             </div>
           </div>
         </div>
-        <p className="mt-3 text-xs text-neutral-400">
+        <p className="mt-3 text-xs text-neutral-500">
           Estimasi berdasarkan data bulan berjalan — bukan angka pasti.
         </p>
       </div>
@@ -224,7 +224,7 @@ export default async function DashboardPage({
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-neutral-800">Transaksi per Jenis</h2>
           {transaksiPerJenis.length === 0 ? (
-            <p className="text-sm text-neutral-400">Belum tersedia.</p>
+            <p className="text-sm text-neutral-500">Belum tersedia.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -286,7 +286,7 @@ export default async function DashboardPage({
             <p className="text-lg font-semibold tabular-nums">{kpi.inputTerakhir ? kpi.inputTerakhir.toLocaleDateString("id-ID") : "Belum ada"}</p>
           </div>
         </div>
-        <p className="mt-3 text-xs text-neutral-400">
+        <p className="mt-3 text-xs text-neutral-500">
           Catatan: aplikasi Ekek belum mencatat status Buka/Libur per hari, jadi &quot;Hari Kalender Periode&quot; di sini adalah seluruh hari kalender pada periode (bukan hari operasional setelah dikurangi hari libur).
         </p>
       </div>
@@ -342,7 +342,7 @@ export default async function DashboardPage({
           Analisis Stock Kritis (di bawah {settings.stockKritisThreshold} pcs total)
         </h2>
         {stockKritis.length === 0 ? (
-          <p className="text-sm text-neutral-400">Tidak ada item dengan stock kritis.</p>
+          <p className="text-sm text-neutral-500">Tidak ada item dengan stock kritis.</p>
         ) : (
           <ul className="space-y-1">
             {stockKritis.map((item) => (
@@ -358,7 +358,7 @@ export default async function DashboardPage({
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-800">Insight Dashboard</h2>
         {insight.length === 0 ? (
-          <p className="text-sm text-neutral-400">Belum cukup data untuk menghasilkan insight.</p>
+          <p className="text-sm text-neutral-500">Belum cukup data untuk menghasilkan insight.</p>
         ) : (
           <ul className="space-y-2">
             {insight.map((s, i) => (

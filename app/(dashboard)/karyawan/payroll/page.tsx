@@ -61,7 +61,7 @@ export default async function PayrollPage({
           <tbody>
             {payrolls.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={9} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada payroll untuk periode ini. Klik Generate Payroll.
                 </td>
               </tr>

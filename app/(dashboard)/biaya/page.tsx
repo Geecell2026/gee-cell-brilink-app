@@ -96,7 +96,7 @@ export default async function BiayaPage({
           <tbody>
             {expenses.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada biaya pada periode ini.
                 </td>
               </tr>

@@ -43,7 +43,7 @@ export default async function AnalisisForecastPage({
       <FilterBar branches={branches} branchId={params.branchId} startDate={startDateStr} endDate={endDateStr} hari={hariFilter} action="/analisis/forecast" />
 
       {data.forecast.length === 0 ? (
-        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400">
+        <p className="rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
           Belum cukup data untuk membuat forecast.
         </p>
       ) : (
@@ -100,9 +100,9 @@ export default async function AnalisisForecastPage({
                 {formatAngka(data.estimasiBulanDepan.bawah)}–{formatAngka(data.estimasiBulanDepan.atas)} transaksi
               </p>
             ) : (
-              <p className="text-sm text-neutral-400">Belum cukup data untuk estimasi bulan berikutnya.</p>
+              <p className="text-sm text-neutral-500">Belum cukup data untuk estimasi bulan berikutnya.</p>
             )}
-            <p className="mt-2 text-xs text-neutral-400">
+            <p className="mt-2 text-xs text-neutral-500">
               Data historis baru sekitar 2 bulan — estimasi ini indikasi awal, bukan target pasti.
             </p>
           </div>

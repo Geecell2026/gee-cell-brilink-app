@@ -2,7 +2,7 @@ import type { Anomali } from "@/types/analytics";
 
 export function AnomalyTable({ data }: { data: Anomali[] }) {
   if (data.length === 0) {
-    return <p className="text-sm text-neutral-400">Tidak ada anomali terdeteksi pada periode ini.</p>;
+    return <p className="text-sm text-neutral-500">Tidak ada anomali terdeteksi pada periode ini.</p>;
   }
 
   return (

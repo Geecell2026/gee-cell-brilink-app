@@ -36,7 +36,7 @@ export default async function DistribusiPage() {
           <tbody>
             {distributions.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-neutral-400">
+                <td colSpan={5} className="px-3 py-6 text-center text-neutral-500">
                   Belum ada distribusi.
                 </td>
               </tr>

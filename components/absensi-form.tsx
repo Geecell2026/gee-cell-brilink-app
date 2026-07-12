@@ -37,7 +37,7 @@ export function AbsensiForm({
           <div key={e.id} className="flex items-center justify-between rounded-md border border-neutral-100 px-3 py-2">
             <div>
               <p className="text-sm font-medium text-neutral-800">{e.name}</p>
-              <p className="text-xs text-neutral-400">{e.branchName}</p>
+              <p className="text-xs text-neutral-500">{e.branchName}</p>
             </div>
             <select
               value={statuses[e.id]}
@@ -55,7 +55,7 @@ export function AbsensiForm({
           </div>
         ))}
         {employees.length === 0 && (
-          <p className="text-sm text-neutral-400">Belum ada karyawan aktif.</p>
+          <p className="text-sm text-neutral-500">Belum ada karyawan aktif.</p>
         )}
       </div>
 
