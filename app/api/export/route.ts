@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
 
   const txSheet = workbook.addWorksheet("Transaksi Harian");
   headerRow(txSheet, [
-    "Tanggal", "Cabang", "Brilink/Atm Mini Pendapatan Adm", "Brilink/Atm Mini Fee",
+    "Tanggal", "Cabang", "Brilink/Atm Mini Pendapatan Adm", "Brilink/Atm Mini Fee", "Brilink/Atm Mini Pengeluaran",
     "Lain Pendapatan", "Lain Pengeluaran", "Aset Pendapatan", "Aset Pengeluaran",
     "Cleo Pendapatan", "Cleo Pengeluaran", "Operasional", "PV", "Gaji/Kasbon", "Plus Minus",
     "Saldo Awal", "Saldo Akhir", "Total Pendapatan", "Total Pengeluaran",
@@ -103,13 +103,13 @@ export async function GET(req: NextRequest) {
     const cleoPengeluaran = tx.cleoTipe === "PENGELUARAN" ? Number(tx.cleoJumlah) : 0;
     const r = txSheet.addRow([
       tx.date, tx.branch.name,
-      Number(tx.brilinkPendapatan), Number(tx.brilinkFee),
+      Number(tx.brilinkPendapatan), Number(tx.brilinkFee), Number(tx.brilinkPengeluaran),
       Number(tx.lainPendapatan), Number(tx.lainPengeluaran), Number(tx.asetPendapatan), Number(tx.asetPengeluaran),
       cleoPendapatan, cleoPengeluaran, Number(tx.operasional), Number(tx.pv), Number(tx.gajiKasbon), Number(tx.plusMinus),
       Number(tx.saldoAwal), Number(tx.saldoAkhir), hitungTotalPendapatan(tx), hitungTotalPengeluaran(tx),
     ]);
     r.getCell(1).numFmt = "dd/mm/yyyy";
-    for (let c = 3; c <= 18; c++) r.getCell(c).numFmt = CURRENCY_FORMAT;
+    for (let c = 3; c <= 19; c++) r.getCell(c).numFmt = CURRENCY_FORMAT;
   }
   txSheet.columns.forEach((col) => (col.width = 16));
 

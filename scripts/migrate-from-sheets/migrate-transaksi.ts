@@ -82,6 +82,7 @@ async function main() {
             date: p.date,
             brilinkPendapatan: p.brilinkPendapatan,
             brilinkFee: p.brilinkFee,
+            brilinkPengeluaran: p.brilinkPengeluaran,
             lainKeterangan: p.lainKeterangan || null,
             lainPendapatan: p.lainPendapatan,
             lainPengeluaran: p.lainPengeluaran,

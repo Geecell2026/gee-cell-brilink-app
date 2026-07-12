@@ -31,6 +31,7 @@ type InitialData = {
   saldoAwal: number;
   brilinkPendapatan: number;
   brilinkFee: number;
+  brilinkPengeluaran: number;
   lainKeterangan: string;
   lainPendapatan: number;
   lainPengeluaran: number;
@@ -136,9 +137,10 @@ export function TransaksiForm({
 
       <section className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-neutral-800">Brilink/Atm Mini</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <TransactionCurrencyInput label="Pendapatan Adm" name="brilinkPendapatan" defaultValue={initialData?.brilinkPendapatan} />
           <TransactionCurrencyInput label="Fee" name="brilinkFee" defaultValue={initialData?.brilinkFee} />
+          <TransactionCurrencyInput label="Pengeluaran" name="brilinkPengeluaran" defaultValue={initialData?.brilinkPengeluaran} />
         </div>
       </section>
 

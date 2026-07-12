@@ -5,6 +5,7 @@ function baseTx(overrides: Partial<Parameters<typeof hitungSaldoAkhir>[0]> = {})
   return {
     brilinkPendapatan: 100_000,
     brilinkFee: 10_000,
+    brilinkPengeluaran: 0,
     lainPendapatan: 0,
     lainPengeluaran: 0,
     asetPendapatan: 0,
@@ -37,9 +38,15 @@ describe("hitungTotalPendapatan (Ekek)", () => {
 });
 
 describe("hitungTotalPengeluaran (Ekek)", () => {
-  it("menjumlahkan lain + aset + operasional + gajiKasbon", () => {
-    const tx = baseTx({ lainPengeluaran: 3_000, asetPengeluaran: 1_000, operasional: 20_000, gajiKasbon: 15_000 });
-    expect(hitungTotalPengeluaran(tx)).toBe(3_000 + 1_000 + 20_000 + 15_000);
+  it("menjumlahkan brilinkPengeluaran + lain + aset + operasional + gajiKasbon", () => {
+    const tx = baseTx({
+      brilinkPengeluaran: 8_000,
+      lainPengeluaran: 3_000,
+      asetPengeluaran: 1_000,
+      operasional: 20_000,
+      gajiKasbon: 15_000,
+    });
+    expect(hitungTotalPengeluaran(tx)).toBe(8_000 + 3_000 + 1_000 + 20_000 + 15_000);
   });
 
   it("Cleo Member Struk bertipe PENGELUARAN ikut masuk pengeluaran", () => {

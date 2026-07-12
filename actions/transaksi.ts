@@ -54,6 +54,7 @@ export async function createDailyTransaction(
         branchId: data.branchId,
         date: new Date(data.date),
         brilinkPendapatan: data.brilinkPendapatan,
+        brilinkPengeluaran: data.brilinkPengeluaran,
         lainKeterangan: data.lainKeterangan || null,
         lainPendapatan: data.lainPendapatan,
         lainPengeluaran: data.lainPengeluaran,
@@ -136,6 +137,7 @@ export async function updateDailyTransaction(
       where: { id },
       data: {
         brilinkPendapatan: data.brilinkPendapatan,
+        brilinkPengeluaran: data.brilinkPengeluaran,
         lainKeterangan: data.lainKeterangan || null,
         lainPendapatan: data.lainPendapatan,
         lainPengeluaran: data.lainPengeluaran,

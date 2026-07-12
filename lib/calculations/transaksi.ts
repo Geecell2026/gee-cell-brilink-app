@@ -3,6 +3,7 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 type TxLike = {
   brilinkPendapatan: Prisma.Decimal | number;
   brilinkFee: Prisma.Decimal | number;
+  brilinkPengeluaran: Prisma.Decimal | number;
   lainPendapatan: Prisma.Decimal | number;
   lainPengeluaran: Prisma.Decimal | number;
   asetPendapatan: Prisma.Decimal | number;
@@ -15,8 +16,12 @@ type TxLike = {
   saldoAwal: Prisma.Decimal | number;
 };
 
-// Catatan: formula total pendapatan/pengeluaran ini estimasi awal berdasarkan
-// pola sheet lama. Perlu diverifikasi ulang dengan user saat data riil mulai dipakai.
+// Diverifikasi terhadap sheet sumber (REKAP LAPORAN WIL EKEK) 2026-07-12 -
+// brilinkPengeluaran ditambahkan setelah ditemukan kolom "Brilink Pengeluaran"
+// di sheet tidak pernah termigrasi ke database sejak awal (Rp67 juta hilang
+// dari total historis 10 cabang). Pv sengaja TIDAK dimasukkan sebagai
+// pengeluaran - dikonfirmasi user itu Prive (ambilan pribadi Lando & partner
+// cabang join), bukan biaya operasional, jadi hanya mengurangi Saldo Akhir.
 //
 // Cleo Member Struk: nilainya masuk Pendapatan atau Pengeluaran tergantung cleoTipe
 // (Ekek jual ke cabang lain = Pendapatan bagi Ekek, cabang lain beli dari Ekek = Pengeluaran).
@@ -32,6 +37,7 @@ export function hitungTotalPendapatan(tx: TxLike) {
 
 export function hitungTotalPengeluaran(tx: TxLike) {
   return (
+    Number(tx.brilinkPengeluaran) +
     Number(tx.lainPengeluaran) +
     Number(tx.asetPengeluaran) +
     Number(tx.operasional) +

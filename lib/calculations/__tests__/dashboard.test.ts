@@ -13,6 +13,7 @@ function fixtureTx(overrides: {
   return {
     brilinkPendapatan: overrides.brilinkPendapatan ?? 0,
     brilinkFee: overrides.brilinkFee ?? 0,
+    brilinkPengeluaran: 0,
     lainPendapatan: 0,
     lainPengeluaran: 0,
     asetPendapatan: 0,

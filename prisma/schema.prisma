@@ -254,6 +254,7 @@ model DailyTransaction {
 
   brilinkPendapatan  Decimal @default(0) @db.Decimal(14, 2)
   brilinkFee         Decimal @default(0) @db.Decimal(14, 2)
+  brilinkPengeluaran Decimal @default(0) @db.Decimal(14, 2)
 
   lainKeterangan  String?
   lainPendapatan  Decimal @default(0) @db.Decimal(14, 2)

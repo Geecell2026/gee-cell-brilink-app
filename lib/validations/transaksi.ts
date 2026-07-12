@@ -41,6 +41,7 @@ export const dailyTransactionSchema = z.object({
 
   brilinkPendapatan: nominalNonNegatif,
   brilinkFee: nominalNonNegatif,
+  brilinkPengeluaran: nominalNonNegatif,
 
   lainKeterangan: z.string().optional(),
   lainPendapatan: nominalNonNegatif,

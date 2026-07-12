@@ -41,6 +41,7 @@ export default async function TransaksiEditPage({ params }: { params: Promise<{ 
           saldoAwal: Number(tx.saldoAwal),
           brilinkPendapatan: Number(tx.brilinkPendapatan),
           brilinkFee: Number(tx.brilinkFee),
+          brilinkPengeluaran: Number(tx.brilinkPengeluaran),
           lainKeterangan: tx.lainKeterangan ?? "",
           lainPendapatan: Number(tx.lainPendapatan),
           lainPengeluaran: Number(tx.lainPengeluaran),

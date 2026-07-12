@@ -4,6 +4,7 @@ export type ParsedRow = {
   date: Date;
   brilinkPendapatan: number;
   brilinkFee: number;
+  brilinkPengeluaran: number;
   lainKeterangan: string;
   lainPendapatan: number;
   lainPengeluaran: number;
@@ -40,6 +41,7 @@ export function parseBranchSheet(rows: string[][], skipTeller: boolean): ParsedR
   const col = {
     tanggal: findColumnByTopOnly(top, (t) => t === "TANGGAL"),
     brilinkPend: findColumnBySection(top, sub, isBrilink, (s) => s === "PEND"),
+    brilinkPeng: findColumnBySection(top, sub, isBrilink, (s) => s === "PENG"),
     brilinkPromosi: findColumnBySection(top, sub, isBrilink, (s) => s === "PROMOSI"),
     lainKet: findColumnBySection(top, sub, isLain, (s) => s === "KET"),
     lainPend: findColumnBySection(top, sub, isLain, (s) => s === "PEND"),
@@ -68,6 +70,7 @@ export function parseBranchSheet(rows: string[][], skipTeller: boolean): ParsedR
     if (!date) continue;
 
     const brilinkPendapatan = parseRupiah(row[col.brilinkPend]);
+    const brilinkPengeluaran = col.brilinkPeng >= 0 ? parseRupiah(row[col.brilinkPeng]) : 0;
     const brilinkFee = col.asetFee >= 0 ? parseRupiah(row[col.asetFee]) : 0;
     const lainPendapatan = parseRupiah(row[col.lainPend]);
     const lainPengeluaran = parseRupiah(row[col.lainPeng]);
@@ -85,6 +88,7 @@ export function parseBranchSheet(rows: string[][], skipTeller: boolean): ParsedR
     const semuaNol =
       brilinkPendapatan === 0 &&
       brilinkFee === 0 &&
+      brilinkPengeluaran === 0 &&
       lainPendapatan === 0 &&
       lainPengeluaran === 0 &&
       asetPendapatan === 0 &&
@@ -101,6 +105,7 @@ export function parseBranchSheet(rows: string[][], skipTeller: boolean): ParsedR
       date,
       brilinkPendapatan,
       brilinkFee,
+      brilinkPengeluaran,
       lainKeterangan: col.lainKet >= 0 ? (row[col.lainKet] ?? "") : "",
       lainPendapatan,
       lainPengeluaran,
