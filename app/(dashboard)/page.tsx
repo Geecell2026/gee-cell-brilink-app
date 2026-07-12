@@ -12,9 +12,12 @@ import {
   getProyeksiAkhirBulan,
   getDashboardDetailCabang,
   getStockKritis,
-  buatInsightDashboard,
 } from "@/lib/calculations/dashboard";
 import { getAppSettings } from "@/lib/calculations/settings";
+import { buildInsightContext } from "@/lib/insights/context";
+import { generateInsights } from "@/lib/insights/engine";
+import { INSIGHT_THRESHOLDS } from "@/lib/insights/thresholds";
+import { InsightList } from "@/components/insights/insight-list";
 import type { PeriodeMode, StatusCabangDashboard } from "@/types/dashboard";
 import { DashboardFilterBar } from "@/components/dashboard-filter-bar";
 import { KpiCard } from "@/components/analisis/kpi-card";
@@ -58,19 +61,24 @@ export default async function DashboardPage({
   const { startDate, endDate, startDateStr, endDateStr } = resolveDashboardPeriod(params);
   const periode = `${startDate.getUTCFullYear()}-${String(startDate.getUTCMonth() + 1).padStart(2, "0")}`;
 
-  const [branches, kpi, trend, komposisi, transaksiPerJenis, proyeksi, detailCabang, stockKritis, settings] = await Promise.all([
-    db.branch.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    getDashboardKpi({ branchId: params.branchId, startDate, endDate, comparisonMode }),
-    getDashboardTrend("keuangan", params.branchId, 6),
-    getKomposisiTransaksi(params.branchId, startDate, endDate),
-    getTransaksiPerJenis({ branchId: params.branchId, startDate, endDate, comparisonMode }),
-    getProyeksiAkhirBulan(params.branchId),
-    getDashboardDetailCabang({ startDate, endDate, comparisonMode }),
-    getStockKritis(),
-    getAppSettings(),
-  ]);
+  const [branches, kpi, trend, komposisi, transaksiPerJenis, proyeksi, detailCabang, stockKritis, settings, insightContext] =
+    await Promise.all([
+      db.branch.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+      getDashboardKpi({ branchId: params.branchId, startDate, endDate, comparisonMode }),
+      getDashboardTrend("keuangan", params.branchId, 6),
+      getKomposisiTransaksi(params.branchId, startDate, endDate),
+      getTransaksiPerJenis({ branchId: params.branchId, startDate, endDate, comparisonMode }),
+      getProyeksiAkhirBulan(params.branchId),
+      getDashboardDetailCabang({ startDate, endDate, comparisonMode }),
+      getStockKritis(),
+      getAppSettings(),
+      buildInsightContext({ startDate, endDate, comparisonMode }),
+    ]);
 
-  const insight = buatInsightDashboard({ kpi, komposisi, transaksiPerJenis, detailCabang, proyeksi });
+  // Insight Otomatis selalu dihitung untuk seluruh Wilayah Ekek (bukan cabang
+  // terfilter) - rule kontribusi cabang & cost ratio butuh perbandingan
+  // lintas-cabang, tidak bermakna kalau dibatasi ke satu cabang saja.
+  const insights = generateInsights(insightContext, { maxResults: INSIGHT_THRESHOLDS.maxDashboardInsights });
 
   return (
     <div className="space-y-6">
@@ -357,18 +365,7 @@ export default async function DashboardPage({
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-semibold text-neutral-800">Insight Dashboard</h2>
-        {insight.length === 0 ? (
-          <p className="text-sm text-neutral-500">Belum cukup data untuk menghasilkan insight.</p>
-        ) : (
-          <ul className="space-y-2">
-            {insight.map((s, i) => (
-              <li key={i} className="flex gap-2 text-sm text-neutral-700">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                {s}
-              </li>
-            ))}
-          </ul>
-        )}
+        <InsightList insights={insights} />
       </div>
     </div>
   );

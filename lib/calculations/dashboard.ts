@@ -54,13 +54,14 @@ export function resolveDashboardPeriod(params: { startDate?: string; endDate?: s
   };
 }
 
-function periodeLengthDays(startDate: Date, endDate: Date): number {
+export function periodeLengthDays(startDate: Date, endDate: Date): number {
   return Math.round((endDate.getTime() - startDate.getTime()) / 86400000);
 }
 
 // Perbandingan periode yang adil (bukan bulan-berjalan-parsial vs bulan-lalu-
-// penuh). 3 mode pembanding.
-function resolveComparablePeriod(startDate: Date, endDate: Date, mode: PeriodeMode) {
+// penuh). 3 mode pembanding. Diekspor supaya lib/insights bisa pakai definisi
+// yang sama persis (bukan duplikat) untuk periode pembanding.
+export function resolveComparablePeriod(startDate: Date, endDate: Date, mode: PeriodeMode) {
   const lastDayIncluded = new Date(endDate.getTime() - 86400000);
 
   if (mode === "BULAN_PENUH_SEBELUMNYA") {
@@ -97,9 +98,12 @@ function resolveComparablePeriod(startDate: Date, endDate: Date, mode: PeriodeMo
   };
 }
 
-type TxRow = Awaited<ReturnType<typeof fetchTransaksiPeriode>>[number];
+export type TxRow = Awaited<ReturnType<typeof fetchTransaksiPeriode>>[number];
 
-async function fetchTransaksiPeriode(branchId: string | undefined, startDate: Date, endDate: Date) {
+// branchId undefined = semua cabang dalam SATU query (bukan N query per cabang) -
+// dipakai getDashboardDetailCabang per-cabang, dan lib/insights untuk fetch
+// batch semua cabang sekaligus lalu dikelompokkan di JS.
+export async function fetchTransaksiPeriode(branchId: string | undefined, startDate: Date, endDate: Date) {
   return db.dailyTransaction.findMany({
     where: { ...(branchId ? { branchId } : {}), date: { gte: startDate, lt: endDate } },
     include: { branch: true, tellerBreakdown: true },
@@ -483,62 +487,6 @@ export async function getStockKritis(threshold?: number) {
     .map((item) => ({ itemId: item.id, name: item.name, total: totalPerItem.get(item.id) ?? 0 }))
     .filter((item) => item.total < effectiveThreshold)
     .sort((a, b) => a.total - b.total);
-}
-
-function formatRupiahSingkat(n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `Rp${(n / 1_000_000).toFixed(1)}jt`;
-  if (abs >= 1_000) return `Rp${(n / 1_000).toFixed(0)}rb`;
-  return `Rp${n.toFixed(0)}`;
-}
-
-// Insight otomatis dari data aktual, bukan teks statis.
-export function buatInsightDashboard(params: {
-  kpi: DashboardKpi;
-  komposisi: KomposisiTransaksi[];
-  transaksiPerJenis: TransaksiPerJenisRow[];
-  detailCabang: DetailCabangDashboard[];
-  proyeksi: { pendapatan: ProyeksiSkenario[] };
-}): string[] {
-  const { kpi, komposisi, transaksiPerJenis, detailCabang, proyeksi } = params;
-  const insight: string[] = [];
-
-  if (kpi.pertumbuhanPendapatan.persen !== null) {
-    const arah = kpi.pertumbuhanPendapatan.persen >= 0 ? "tumbuh" : "turun";
-    insight.push(`Pendapatan ${arah} ${Math.abs(kpi.pertumbuhanPendapatan.persen).toFixed(1)}% dibanding ${kpi.pembandingLabel.toLowerCase()}.`);
-  }
-
-  if (komposisi.length > 0) {
-    const terbesar = [...komposisi].sort((a, b) => b.jumlah - a.jumlah)[0];
-    insight.push(`${terbesar.kategori} merupakan layanan terbesar dengan kontribusi ${terbesar.persen.toFixed(1)}%.`);
-  }
-
-  const naik = transaksiPerJenis.filter((r) => r.tren === "Naik").sort((a, b) => (b.pertumbuhanPersen ?? 0) - (a.pertumbuhanPersen ?? 0));
-  if (naik.length > 0) {
-    insight.push(`${naik[0].jenis} memiliki pertumbuhan tertinggi (${naik[0].pertumbuhanPersen!.toFixed(1)}%).`);
-  }
-  const turun = transaksiPerJenis.filter((r) => r.tren === "Turun");
-  if (turun.length > 0) {
-    insight.push(`${turun.map((t) => t.jenis).join(", ")} mengalami penurunan dibanding periode sebelumnya.`);
-  }
-
-  if (kpi.kelengkapanDataPersen !== null && kpi.kelengkapanDataPersen < 100) {
-    insight.push(`Kelengkapan data baru ${kpi.kelengkapanDataPersen.toFixed(1)}%, sehingga analisis belum sepenuhnya akurat.`);
-  }
-
-  if (proyeksi.pendapatan.length === 3) {
-    insight.push(
-      `Proyeksi pendapatan akhir bulan berada pada rentang ${formatRupiahSingkat(proyeksi.pendapatan[0].nilai)} sampai ${formatRupiahSingkat(proyeksi.pendapatan[2].nilai)}.`
-    );
-  }
-
-  const cabangAktif = detailCabang.filter((c) => c.isActive && c.margin !== null);
-  if (cabangAktif.length > 0) {
-    const marginTertinggi = [...cabangAktif].sort((a, b) => (b.margin ?? -Infinity) - (a.margin ?? -Infinity))[0];
-    insight.push(`Cabang ${marginTertinggi.branchName} memiliki margin tertinggi (${marginTertinggi.margin!.toFixed(1)}%).`);
-  }
-
-  return insight;
 }
 
 export { rataRata };

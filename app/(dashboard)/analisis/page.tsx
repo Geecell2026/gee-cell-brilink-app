@@ -6,6 +6,9 @@ import { getAppSettings } from "@/lib/calculations/settings";
 import { buildAnalisisData } from "@/lib/analytics/build-analisis-data";
 import { resolveDateRange } from "@/lib/analytics/resolve-date-range";
 import { buildTrendChartData } from "@/lib/analytics/chart-helpers";
+import { buildInsightContext } from "@/lib/insights/context";
+import { generateInsights } from "@/lib/insights/engine";
+import { InsightList } from "@/components/insights/insight-list";
 import { FilterBar } from "@/components/analisis/filter-bar";
 import { KpiCard } from "@/components/analisis/kpi-card";
 import { TrendChart } from "@/components/analisis/trend-chart";
@@ -51,6 +54,16 @@ export default async function AnalisisRingkasanPage({
       </div>
     );
   }
+
+  // Insight Otomatis di halaman ini pakai engine yang sama dengan Dashboard
+  // (lib/insights) - selalu wilayah penuh (bukan cabang/hari terfilter),
+  // konsisten dengan rule kontribusi cabang & cost ratio yang butuh
+  // perbandingan lintas-cabang. "SAMA_BULAN_LALU" dipilih karena persis
+  // pola "1-12 Juli vs 1-12 Juni" dari spec.
+  const insights =
+    startDate && endDate
+      ? generateInsights(await buildInsightContext({ startDate, endDate, comparisonMode: "SAMA_BULAN_LALU" }))
+      : [];
 
   // Ekek tidak punya status Buka/Libur - semua hari yang ada laporannya
   // dianggap hari operasional, jadi rata-rata "hari buka" = rata-rata seluruh data.
@@ -119,18 +132,7 @@ export default async function AnalisisRingkasanPage({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-neutral-800">Insight Otomatis</h2>
-          {data.insight.length === 0 ? (
-            <p className="text-sm text-neutral-500">Belum cukup data untuk menghasilkan insight.</p>
-          ) : (
-            <ul className="space-y-2">
-              {data.insight.map((s, i) => (
-                <li key={i} className="flex gap-2 text-sm text-neutral-700">
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                  {s}
-                </li>
-              ))}
-            </ul>
-          )}
+          <InsightList insights={insights} />
         </div>
 
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
