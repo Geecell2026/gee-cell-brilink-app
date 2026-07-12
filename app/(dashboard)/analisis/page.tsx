@@ -8,7 +8,7 @@ import { resolveDateRange } from "@/lib/analytics/resolve-date-range";
 import { buildTrendChartData } from "@/lib/analytics/chart-helpers";
 import { buildInsightContext } from "@/lib/insights/context";
 import { generateInsights } from "@/lib/insights/engine";
-import { InsightList } from "@/components/insights/insight-list";
+import { InsightExplorer } from "@/components/insights/insight-explorer";
 import { FilterBar } from "@/components/analisis/filter-bar";
 import { KpiCard } from "@/components/analisis/kpi-card";
 import { TrendChart } from "@/components/analisis/trend-chart";
@@ -60,10 +60,15 @@ export default async function AnalisisRingkasanPage({
   // konsisten dengan rule kontribusi cabang & cost ratio yang butuh
   // perbandingan lintas-cabang. "SAMA_BULAN_LALU" dipilih karena persis
   // pola "1-12 Juli vs 1-12 Juni" dari spec.
-  const insights =
-    startDate && endDate
-      ? generateInsights(await buildInsightContext({ startDate, endDate, comparisonMode: "SAMA_BULAN_LALU" }))
-      : [];
+  const insightContext =
+    startDate && endDate ? await buildInsightContext({ startDate, endDate, comparisonMode: "SAMA_BULAN_LALU" }) : null;
+  const insights = insightContext ? generateInsights(insightContext) : [];
+  // Label ikut filter yang sedang aktif - "rolling 30 hari" cuma disebut kalau
+  // memang belum ada filter tanggal manual (itu default resolveDateRange).
+  const periodeDefault = !params.startDate && !params.endDate;
+  const insightPeriodLabel = insightContext
+    ? `${insightContext.periodLabel}${periodeDefault ? " · rolling 30 hari" : " · sesuai filter aktif"}`
+    : "";
 
   // Ekek tidak punya status Buka/Libur - semua hari yang ada laporannya
   // dianggap hari operasional, jadi rata-rata "hari buka" = rata-rata seluruh data.
@@ -129,25 +134,24 @@ export default async function AnalisisRingkasanPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <h2 className="mb-3 text-sm font-semibold text-neutral-800">Insight Otomatis</h2>
-          <InsightList insights={insights} />
-        </div>
+      <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <h2 className="text-sm font-semibold text-neutral-800">Insight Otomatis</h2>
+        <p className="mb-3 text-xs text-neutral-500">Berdasarkan {insightPeriodLabel}</p>
+        <InsightExplorer insights={insights} branches={branches.map((b) => ({ id: b.id, name: b.name }))} />
+      </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <h2 className="mb-3 text-sm font-semibold text-neutral-800">Status Performa Toko</h2>
-          <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${STATUS_STYLE[data.performa.status]}`}>
-            {data.performa.status}
-          </span>
-          <ul className="mt-3 space-y-1.5">
-            {data.performa.alasan.map((a, i) => (
-              <li key={i} className="text-sm text-neutral-600">
-                • {a}
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-neutral-800">Status Performa Toko</h2>
+        <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${STATUS_STYLE[data.performa.status]}`}>
+          {data.performa.status}
+        </span>
+        <ul className="mt-3 space-y-1.5">
+          {data.performa.alasan.map((a, i) => (
+            <li key={i} className="text-sm text-neutral-600">
+              • {a}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

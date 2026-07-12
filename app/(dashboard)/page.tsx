@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Store, TrendingUp, Wallet, PiggyBank, Percent, ArrowLeftRight, Landmark, Smartphone, Banknote,
   CalendarCheck, ClipboardCheck, ArrowUpRight, Users, Package, Boxes, HandCoins,
@@ -364,7 +365,15 @@ export default async function DashboardPage({
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-800">Insight Dashboard</h2>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-neutral-800">Insight Dashboard</h2>
+            <p className="text-xs text-neutral-500">Periode {insightContext.periodLabel} · Bulan berjalan</p>
+          </div>
+          <Link href="/analisis" className="text-xs font-medium text-blue-600 hover:underline">
+            Lihat tren 30 hari di Ringkasan Owner
+          </Link>
+        </div>
         <InsightList insights={insights} />
       </div>
     </div>

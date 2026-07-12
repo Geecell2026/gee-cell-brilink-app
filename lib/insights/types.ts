@@ -14,6 +14,15 @@ export type InsightCategory =
   | "target"
   | "projection";
 
+// Anggota insight gabungan (mis. daftar cabang di balik satu insight
+// kelengkapan-data regional, atau daftar cabang di balik satu anomali
+// serentak) - dipakai UI untuk expand/detail tanpa engine tahu bentuk UI-nya.
+export type InsightGroupMember = {
+  entityId: string;
+  entityName: string;
+  metricValue?: number | null;
+};
+
 export type InsightResult = {
   id: string;
   ruleId: string;
@@ -31,9 +40,13 @@ export type InsightResult = {
   comparisonValue?: number | null;
   periodStart: string;
   periodEnd: string;
+  comparisonStart?: string;
+  comparisonEnd?: string;
   sourceModules: string[];
   href?: string;
   generatedAt: string;
+  /** Diisi kalau insight ini mewakili beberapa entitas sekaligus (grouped insight). */
+  groupMembers?: InsightGroupMember[];
 };
 
 // Data satu cabang untuk satu periode (dipakai bersama beberapa rule) - dibangun
