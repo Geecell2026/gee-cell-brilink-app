@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hitungPendapatanBiayaLaba, hitungTransaksiBreakdown, buatGrowth } from "@/lib/calculations/dashboard";
+import { hitungPendapatanBiayaLaba, hitungTransaksiBreakdown, buatGrowth, tentukanStatusCabang } from "@/lib/calculations/dashboard";
 
 // Fixture minimal - cuma field yang benar-benar dipakai hitungPendapatanBiayaLaba/
 // hitungTransaksiBreakdown, di-cast karena tipe aslinya (hasil query Prisma
@@ -68,6 +68,71 @@ describe("hitungPendapatanBiayaLaba", () => {
     const hasil = hitungPendapatanBiayaLaba(transaksi);
     expect(hasil.margin).toBeNull();
     expect(Number.isNaN(hasil.laba)).toBe(false);
+  });
+});
+
+describe("tentukanStatusCabang - matriks E & G (periode operasional)", () => {
+  const dasar = {
+    hariLaporanTerinput: 20,
+    kelengkapanDataPersen: 95,
+    laba: 1_000_000,
+    margin: 20,
+    pertumbuhanPendapatan: 5,
+  };
+
+  it("E.8 & G.1. beroperasi pada periode + status Aktif -> dinilai normal (bukan Belum Beroperasi)", () => {
+    const hasil = tentukanStatusCabang({ ...dasar, beroperasiPadaPeriode: true, statusTidakBeroperasi: null });
+    expect(hasil.status).not.toBe("Belum Beroperasi");
+  });
+
+  it("E.8. cabang belum mulai beroperasi pada periode ini -> status Belum Beroperasi, BUKAN dinilai nol", () => {
+    const hasil = tentukanStatusCabang({
+      ...dasar,
+      hariLaporanTerinput: 0,
+      kelengkapanDataPersen: null,
+      laba: 0,
+      margin: null,
+      pertumbuhanPendapatan: null,
+      beroperasiPadaPeriode: false,
+      statusTidakBeroperasi: "belum_mulai",
+    });
+    expect(hasil.status).toBe("Belum Beroperasi");
+    expect(hasil.alasan).toContain("belum mulai beroperasi");
+  });
+
+  it("F.4-6 (AB2) & G.2. cabang sudah tutup pada periode ini -> status Belum Beroperasi (alasan sudah tutup), bukan Perlu Evaluasi/Data Belum Cukup", () => {
+    const hasil = tentukanStatusCabang({
+      ...dasar,
+      hariLaporanTerinput: 0,
+      kelengkapanDataPersen: null,
+      laba: 0,
+      margin: null,
+      pertumbuhanPendapatan: null,
+      beroperasiPadaPeriode: false,
+      statusTidakBeroperasi: "sudah_tutup",
+    });
+    expect(hasil.status).toBe("Belum Beroperasi");
+    expect(hasil.alasan).toContain("berhenti beroperasi");
+  });
+
+  it("G.2. status Nonaktif SEKARANG tapi beroperasi pada periode historis yang diminta -> tetap dinilai normal (histori tidak dihapus)", () => {
+    // beroperasiPadaPeriode dihitung dari tanggalMulaiOperasi/tanggalTutupOperasi
+    // (section 12) - fungsi ini TIDAK menerima isActive sama sekali, jadi status
+    // Nonaktif terkini tidak bisa memaksa cabang jadi "Belum Beroperasi" untuk
+    // periode yang secara historis valid.
+    const hasil = tentukanStatusCabang({ ...dasar, beroperasiPadaPeriode: true, statusTidakBeroperasi: null });
+    expect(hasil.status).not.toBe("Belum Beroperasi");
+  });
+
+  it("E.7. denominator kelengkapan nol (null) -> tetap dinilai lewat jalur 'Data Belum Cukup', bukan skor nol/negatif", () => {
+    const hasil = tentukanStatusCabang({
+      ...dasar,
+      hariLaporanTerinput: 0,
+      kelengkapanDataPersen: null,
+      beroperasiPadaPeriode: true,
+      statusTidakBeroperasi: null,
+    });
+    expect(hasil.status).toBe("Data Belum Cukup");
   });
 });
 

@@ -55,10 +55,21 @@ export type BranchInsightData = {
   branchId: string;
   branchName: string;
   isActive: boolean;
+  /** Tanggal mulai/tutup operasi cabang (null = belum diketahui/belum tutup) - lihat lib/calculations/operational-period.ts. */
+  tanggalMulaiOperasi: Date | null;
+  tanggalTutupOperasi: Date | null;
+  /** true kalau status Nonaktif tapi tanggalTutupOperasi belum diisi - konfigurasi cabang belum lengkap. */
+  isConfigIncomplete: boolean;
   /** Tanggal laporan pertama cabang ini pernah tercatat (null = belum pernah ada laporan sama sekali). */
   firstReportDate: Date | null;
-  /** Titik harian periode AKTIF saja (bukan periode pembanding) - untuk deteksi anomali & kelengkapan data. */
+  /**
+   * Titik harian periode AKTIF saja (bukan periode pembanding), SUDAH diklem ke
+   * periode operasional cabang (lihat lib/calculations/operational-period.ts) -
+   * tanggal sebelum mulai/setelah tutup tidak akan pernah muncul di sini, jadi
+   * rule anomali & kelengkapan data tidak perlu mengecek ulang.
+   */
   currentPoints: DailyPoint[];
+  /** Total aktual (TIDAK diklem periode operasional) - dipakai "Total aktual wilayah", lihat section 10.A. */
   currentPendapatan: number;
   currentBiaya: number;
   previousPendapatan: number;

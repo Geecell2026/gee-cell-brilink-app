@@ -7,7 +7,7 @@ import type { Anomali } from "@/types/analytics";
 import type { InsightContext, InsightGroupMember, InsightResult } from "../types";
 
 export const RULE_ID = "branch-anomaly";
-export const RULE_VERSION = "1.1.0";
+export const RULE_VERSION = "1.2.0";
 
 type ArahAnomali = "naik" | "turun";
 type PeristiwaAnomali = Anomali & { branchId: string; branchName: string; arah: ArahAnomali };
@@ -60,6 +60,14 @@ function rentangTanggal(peristiwa: PeristiwaAnomali[]): string {
 // dalam jendela waktu berdekatan digabung jadi satu insight wilayah (bukan
 // dianggap anomali independen tiap cabang) - lihat kelompokkanCommonMode().
 // Bagian "0 transaksi berulang" TIDAK diubah sama sekali dari v1.0.0.
+//
+// v1.2.0: TIDAK ADA perubahan logic di file ini - rule ini otomatis ikut
+// terkoreksi lewat context.ts, yang sekarang mengklem branch.currentPoints ke
+// periode operasional cabang (tanggalMulaiOperasi..tanggalTutupOperasi) sebelum
+// sampai ke sini (lihat lib/calculations/operational-period.ts). Jadi hari
+// sebelum cabang mulai/setelah cabang tutup permanen tidak akan pernah muncul
+// di currentPoints, otomatis tidak pernah dievaluasi sebagai anomali - tanpa
+// rule ini perlu tahu apa itu "periode operasional".
 export function generateBranchAnomalyInsights(context: InsightContext): InsightResult[] {
   const results: InsightResult[] = [];
   const periodStart = context.periodStart.toISOString().slice(0, 10);

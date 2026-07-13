@@ -25,6 +25,16 @@ model Branch {
   name      String   @unique
   code      String   @unique
   isActive  Boolean  @default(true)
+  // Tanggal mulai/tutup operasi menentukan periode operasional historis cabang -
+  // ini yang dipakai Kelengkapan Data/Deteksi Anomali/Kontribusi Tren untuk
+  // membedakan "belum mulai"/"sudah tutup" dari "aktif tapi belum lapor".
+  // isActive HANYA status terkini (bukan time-versioned) - histori tetap
+  // ditentukan tanggalMulaiOperasi..tanggalTutupOperasi, lihat
+  // lib/calculations/operational-period.ts.
+  // null tanggalMulaiOperasi = belum diketahui. null tanggalTutupOperasi =
+  // belum tercatat tutup permanen (masih berjalan).
+  tanggalMulaiOperasi DateTime? @db.Date
+  tanggalTutupOperasi DateTime? @db.Date
   createdAt DateTime @default(now())
 
   dailyTransactions DailyTransaction[]

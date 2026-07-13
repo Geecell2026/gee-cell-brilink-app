@@ -6,6 +6,7 @@ import {
 } from "@/lib/calculations/dashboard";
 import { perkayaDailyPoints } from "@/lib/analytics/aggregation";
 import type { RawTx } from "@/lib/analytics/aggregation";
+import { isBranchOperationalOnDate, isBranchConfigIncomplete } from "@/lib/calculations/operational-period";
 import type { PeriodeMode } from "@/types/dashboard";
 import type { InsightContext, BranchInsightData } from "./types";
 import { formatTanggalSingkat } from "./formatters";
@@ -16,6 +17,13 @@ import { formatTanggalSingkat } from "./formatters";
 // per cabang untuk tanggal laporan pertama. Cabang wilayah lain tidak mungkin
 // ikut terbaca karena database Ekek secara struktural cuma berisi cabang Ekek
 // sendiri (bukan multi-tenant satu database).
+//
+// Query branch TIDAK difilter isActive:true (beda dari sebelumnya) - status
+// terkini bukan penentu histori operasional (section 3.B spec periode
+// operasional). Cabang yang saat ini Nonaktif tetap harus muncul di sini supaya
+// rule masih bisa mengevaluasi periode SEBELUM tanggal tutupnya. Rule yang
+// butuh "cabang operasional pada periode ini" memfilter sendiri lewat
+// isBranchOperationalDuringRange (lib/calculations/operational-period.ts).
 export async function buildInsightContext(params: {
   startDate: Date;
   endDate: Date;
@@ -25,7 +33,7 @@ export async function buildInsightContext(params: {
   const { prevStart, prevEnd, pembandingLabel } = resolveComparablePeriod(startDate, endDate, comparisonMode);
 
   const [branches, currentTx, prevTx, firstDates] = await Promise.all([
-    db.branch.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    db.branch.findMany({ orderBy: { name: "asc" } }),
     fetchTransaksiPeriode(undefined, startDate, endDate),
     fetchTransaksiPeriode(undefined, prevStart, prevEnd),
     db.dailyTransaction.groupBy({ by: ["branchId"], _min: { date: true } }),
@@ -36,7 +44,11 @@ export async function buildInsightContext(params: {
   const branchesData: BranchInsightData[] = branches.map((branch) => {
     const curr = currentTx.filter((tx) => tx.branchId === branch.id);
     const prev = prevTx.filter((tx) => tx.branchId === branch.id);
+    const firstReportDate = firstDateMap.get(branch.id) ?? null;
 
+    // Total aktual (currentPendapatan/currentBiaya) SENGAJA tidak diklem ke
+    // periode operasional - ini "Total aktual wilayah" (section 10.A), data
+    // asli yang benar-benar terjadi apa adanya.
     const { pendapatan: currentPendapatan, biaya: currentBiaya } = hitungPendapatanBiayaLaba(curr);
     const { pendapatan: previousPendapatan, biaya: previousBiaya } = hitungPendapatanBiayaLaba(prev);
 
@@ -48,13 +60,21 @@ export async function buildInsightContext(params: {
         0
       ),
     }));
-    const currentPoints = perkayaDailyPoints(rawTx).sort((a, b) => a.date.getTime() - b.date.getTime());
+    // currentPoints DIKLEM ke periode operasional (fallback ke firstReportDate
+    // kalau tanggalMulaiOperasi belum diisi) - Kelengkapan Data & Deteksi
+    // Anomali mengonsumsi currentPoints ini apa adanya, tidak perlu cek ulang.
+    const currentPoints = perkayaDailyPoints(rawTx)
+      .filter((p) => isBranchOperationalOnDate(branch, p.date, firstReportDate))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
 
     return {
       branchId: branch.id,
       branchName: branch.name,
       isActive: branch.isActive,
-      firstReportDate: firstDateMap.get(branch.id) ?? null,
+      tanggalMulaiOperasi: branch.tanggalMulaiOperasi,
+      tanggalTutupOperasi: branch.tanggalTutupOperasi,
+      isConfigIncomplete: isBranchConfigIncomplete(branch),
+      firstReportDate,
       currentPoints,
       currentPendapatan,
       currentBiaya,

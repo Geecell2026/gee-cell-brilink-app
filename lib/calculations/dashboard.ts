@@ -4,6 +4,7 @@ import { hitungStockLevels } from "@/lib/calculations/stock";
 import { getAppSettings } from "@/lib/calculations/settings";
 import { pertumbuhanPersen, rataRata } from "@/lib/analytics/statistics";
 import { hitungProyeksiAkhirBulan } from "@/lib/forecast/forecast";
+import { getOperationalRangeIntersection, isBranchOperationalDuringRange } from "@/lib/calculations/operational-period";
 import type {
   DashboardKpi,
   DetailCabangDashboard,
@@ -158,8 +159,8 @@ export async function getDashboardKpi(params: {
 }): Promise<DashboardKpi> {
   const { branchId, startDate, endDate, comparisonMode } = params;
 
-  const [totalCabang, totalKaryawan, itemCount, levels, gajiPeriode, transaksi] = await Promise.all([
-    db.branch.count({ where: { isActive: true } }),
+  const [branchesMeta, totalKaryawan, itemCount, levels, gajiPeriode, transaksi, firstDates] = await Promise.all([
+    db.branch.findMany({ select: { id: true, tanggalMulaiOperasi: true, tanggalTutupOperasi: true } }),
     db.employee.count({ where: { isActive: true, ...(branchId ? { branchId } : {}) } }),
     db.item.count({ where: { isActive: true } }),
     hitungStockLevels(),
@@ -172,10 +173,20 @@ export async function getDashboardKpi(params: {
       _sum: { totalGajiKotor: true },
     }),
     fetchTransaksiPeriode(branchId, startDate, endDate),
+    db.dailyTransaction.groupBy({ by: ["branchId"], _min: { date: true } }),
   ]);
   const totalStock = levels
     .filter((l) => !branchId || l.branchId === branchId)
     .reduce((sum, l) => sum + l.qty, 0);
+
+  const firstDateMap = new Map(firstDates.map((f) => [f.branchId, f._min.date]));
+  // Total Cabang Aktif = cabang yang periode operasionalnya beririsan dengan
+  // periode yang sedang dilihat (section 12) - BUKAN cuma status isActive
+  // terkini, supaya cabang yang baru saja ditutup tetap terhitung untuk
+  // periode SEBELUM tanggal tutupnya.
+  const totalCabang = branchesMeta.filter((b) =>
+    isBranchOperationalDuringRange(b, startDate, endDate, firstDateMap.get(b.id) ?? null)
+  ).length;
 
   const { pendapatan, biaya, laba, margin } = hitungPendapatanBiayaLaba(transaksi);
   const { transfer, eWallet, tarikTunai, totalTransaksi } = hitungTransaksiBreakdown(transaksi);
@@ -201,11 +212,22 @@ export async function getDashboardKpi(params: {
 
   const hariLaporanTerinput = new Set(transaksi.map((tx) => tx.date.toISOString())).size;
   // Ekek tidak punya field status BUKA/LIBUR pada DailyTransaction (beda dari
-  // wilayah lain) - jadi "Hari Operasional" di sini murni hari kalender pada
-  // periode, tanpa pengurangan hari libur (belum ada data itu untuk dikurangi).
+  // wilayah lain) - jadi "Hari Operasional" region-wide (branchId kosong) tetap
+  // hari kalender periode, tanpa pengurangan hari libur (komposisi cabang
+  // berubah-ubah sepanjang waktu jadi "hari operasional gabungan" tidak
+  // punya definisi tunggal yang bermakna). SAAT difilter ke satu cabang,
+  // dipakai hari operasional cabang itu (tanggalMulaiOperasi..tanggalTutupOperasi)
+  // supaya rata-rata tidak diseret turun oleh hari sebelum cabang mulai/setelah tutup.
   const hariKalender = periodeLengthDays(startDate, endDate);
-  const hariOperasional = hariKalender;
-  const hariBelumInput = Math.max(0, hariKalender - hariLaporanTerinput);
+  let hariOperasional = hariKalender;
+  if (branchId) {
+    const meta = branchesMeta.find((b) => b.id === branchId);
+    if (meta) {
+      const irisan = getOperationalRangeIntersection(meta, startDate, endDate, firstDateMap.get(branchId) ?? null);
+      hariOperasional = irisan ? Math.round((irisan.end.getTime() - irisan.start.getTime()) / 86400000) : 0;
+    }
+  }
+  const hariBelumInput = Math.max(0, hariOperasional - hariLaporanTerinput);
   const kelengkapanDataPersen = hariOperasional > 0 ? (hariLaporanTerinput / hariOperasional) * 100 : null;
 
   const inputTerakhir = transaksi.length > 0 ? transaksi[transaksi.length - 1].date : null;
@@ -293,7 +315,22 @@ export async function getTransaksiPerJenis(params: {
   const { branchId, startDate, endDate, comparisonMode } = params;
   const transaksi = await fetchTransaksiPeriode(branchId, startDate, endDate);
   const current = hitungTransaksiBreakdown(transaksi);
-  const hariOperasional = Math.max(1, periodeLengthDays(startDate, endDate));
+
+  // Rata-rata/hari dipakai hari operasional CABANG saat difilter ke satu
+  // cabang (bukan hari kalender mentah) - supaya cabang yang baru mulai/sudah
+  // tutup di tengah periode tidak punya rata-rata yang keliru rendah. Tanpa
+  // filter cabang, dipakai hari kalender periode (lihat catatan di getDashboardKpi).
+  let hariOperasional = Math.max(1, periodeLengthDays(startDate, endDate));
+  if (branchId) {
+    const [branch, firstTx] = await Promise.all([
+      db.branch.findUnique({ where: { id: branchId }, select: { tanggalMulaiOperasi: true, tanggalTutupOperasi: true } }),
+      db.dailyTransaction.aggregate({ where: { branchId }, _min: { date: true } }),
+    ]);
+    if (branch) {
+      const irisan = getOperationalRangeIntersection(branch, startDate, endDate, firstTx._min.date ?? null);
+      hariOperasional = irisan ? Math.max(1, Math.round((irisan.end.getTime() - irisan.start.getTime()) / 86400000)) : 1;
+    }
+  }
 
   const { prevStart, prevEnd } = resolveComparablePeriod(startDate, endDate, comparisonMode);
   const prevTransaksi = await fetchTransaksiPeriode(branchId, prevStart, prevEnd);
@@ -349,17 +386,42 @@ export async function getProyeksiAkhirBulan(branchId?: string): Promise<{
 }
 
 // Status cabang multi-faktor (bukan cuma nominal omset).
-function tentukanStatusCabang(params: {
-  isActive: boolean;
+//
+// "Beroperasi pada periode ini" SEKARANG ditentukan oleh irisan periode dengan
+// tanggalMulaiOperasi..tanggalTutupOperasi cabang (section 12), BUKAN cuma
+// status isActive terkini - cabang yang baru saja ditutup (isActive=false)
+// tetap dievaluasi normal untuk periode SEBELUM tanggal tutupnya, dan cabang
+// yang masih isActive=true tapi periode yang dilihat sepenuhnya sebelum
+// tanggalMulaiOperasi/setelah tanggalTutupOperasi ditandai "Belum Beroperasi"
+// (bukan dipaksa masuk skema Data Belum Cukup/Perlu Evaluasi).
+export function tentukanStatusCabang(params: {
+  beroperasiPadaPeriode: boolean;
+  statusTidakBeroperasi: "belum_mulai" | "sudah_tutup" | "nonaktif" | null;
   hariLaporanTerinput: number;
   kelengkapanDataPersen: number | null;
   laba: number;
   margin: number | null;
   pertumbuhanPendapatan: number | null;
 }): { status: StatusCabangDashboard; alasan: string } {
-  const { isActive, hariLaporanTerinput, kelengkapanDataPersen, laba, margin, pertumbuhanPendapatan } = params;
+  const {
+    beroperasiPadaPeriode,
+    statusTidakBeroperasi,
+    hariLaporanTerinput,
+    kelengkapanDataPersen,
+    laba,
+    margin,
+    pertumbuhanPendapatan,
+  } = params;
 
-  if (!isActive) return { status: "Belum Beroperasi", alasan: "Cabang belum aktif." };
+  if (!beroperasiPadaPeriode) {
+    const alasan =
+      statusTidakBeroperasi === "sudah_tutup"
+        ? "Cabang sudah berhenti beroperasi sebelum atau selama periode ini."
+        : statusTidakBeroperasi === "belum_mulai"
+          ? "Cabang belum mulai beroperasi pada periode ini."
+          : "Cabang belum aktif.";
+    return { status: "Belum Beroperasi", alasan };
+  }
   if (hariLaporanTerinput < 5 || kelengkapanDataPersen === null) {
     return { status: "Data Belum Cukup", alasan: "Laporan harian pada periode ini masih terlalu sedikit untuk dinilai." };
   }
@@ -412,11 +474,40 @@ export async function getDashboardDetailCabang(params: {
   comparisonMode: PeriodeMode;
 }): Promise<DetailCabangDashboard[]> {
   const { startDate, endDate, comparisonMode } = params;
-  const branches = await db.branch.findMany({ orderBy: { name: "asc" } });
+  const [branches, firstDates] = await Promise.all([
+    db.branch.findMany({ orderBy: { name: "asc" } }),
+    db.dailyTransaction.groupBy({ by: ["branchId"], _min: { date: true } }),
+  ]);
+  const firstDateMap = new Map(firstDates.map((f) => [f.branchId, f._min.date]));
   const { prevStart, prevEnd, scaleToPeriodLength } = resolveComparablePeriod(startDate, endDate, comparisonMode);
 
   return Promise.all(
     branches.map(async (branch) => {
+      const firstReportDate = firstDateMap.get(branch.id) ?? null;
+      // Cabang tanpa tanggalMulaiOperasi DAN tanpa histori laporan sama sekali
+      // (belum pernah dikonfigurasi/belum pernah lapor) - tidak ada dasar untuk
+      // menghitung irisan periode operasional, fallback ke status isActive
+      // terkini (sama seperti perilaku lama).
+      const belumPernahAdaData = !branch.tanggalMulaiOperasi && !firstReportDate;
+      const irisan = belumPernahAdaData
+        ? null
+        : getOperationalRangeIntersection(branch, startDate, endDate, firstReportDate);
+      const beroperasiPadaPeriode = belumPernahAdaData ? branch.isActive : irisan !== null;
+
+      let statusTidakBeroperasi: "belum_mulai" | "sudah_tutup" | "nonaktif" | null = null;
+      if (!beroperasiPadaPeriode) {
+        if (belumPernahAdaData) statusTidakBeroperasi = "nonaktif";
+        else {
+          const mulaiEfektif = branch.tanggalMulaiOperasi ?? firstReportDate;
+          statusTidakBeroperasi =
+            branch.tanggalTutupOperasi && startDate > branch.tanggalTutupOperasi
+              ? "sudah_tutup"
+              : mulaiEfektif && endDate <= mulaiEfektif
+                ? "belum_mulai"
+                : "sudah_tutup";
+        }
+      }
+
       const [transaksi, prevTransaksi] = await Promise.all([
         fetchTransaksiPeriode(branch.id, startDate, endDate),
         fetchTransaksiPeriode(branch.id, prevStart, prevEnd),
@@ -437,11 +528,21 @@ export async function getDashboardDetailCabang(params: {
       const pertumbuhanPendapatan = prevBaseline > 0 ? pertumbuhanPersen(pendapatan, prevBaseline) : null;
 
       const hariLaporanTerinput = transaksi.length;
-      const hariOperasional = periodeLengthDays(startDate, endDate);
+      // Denominator kelengkapan = hari OPERASIONAL cabang dalam periode (bukan
+      // hari kalender mentah) - section 8/11: hari sebelum mulai/setelah tutup
+      // tidak boleh masuk pembilang maupun penyebut.
+      const hariOperasional = belumPernahAdaData
+        ? branch.isActive
+          ? periodeLengthDays(startDate, endDate)
+          : 0
+        : irisan
+          ? Math.round((irisan.end.getTime() - irisan.start.getTime()) / 86400000)
+          : 0;
       const kelengkapanDataPersen = hariOperasional > 0 ? (hariLaporanTerinput / hariOperasional) * 100 : null;
 
       const { status, alasan } = tentukanStatusCabang({
-        isActive: branch.isActive,
+        beroperasiPadaPeriode,
+        statusTidakBeroperasi,
         hariLaporanTerinput,
         kelengkapanDataPersen,
         laba,

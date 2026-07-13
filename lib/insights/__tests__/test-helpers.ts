@@ -12,6 +12,9 @@ export function buatBranch(
 ): BranchInsightData {
   return {
     isActive: true,
+    tanggalMulaiOperasi: null,
+    tanggalTutupOperasi: null,
+    isConfigIncomplete: false,
     firstReportDate: null,
     currentPoints: [],
     currentPendapatan: 0,

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { BranchForm } from "@/components/branch-form";
+import { BranchOperationalForm } from "@/components/branch-operational-form";
 import { toggleBranchActive } from "@/actions/cabang";
 
 export default async function CabangPage() {
@@ -14,21 +15,32 @@ export default async function CabangPage() {
 
       <BranchForm />
 
+      <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
+        <span className="font-medium">Status</span> menggambarkan kondisi cabang saat ini (Aktif/Nonaktif) - histori
+        operasional (dipakai Dashboard, Kelengkapan Data, Deteksi Anomali, Kontribusi Tren) tetap ditentukan oleh{" "}
+        <span className="font-medium">Mulai Operasi</span> dan <span className="font-medium">Tutup Operasi</span>,
+        bukan status ini.
+      </p>
+
       <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-medium uppercase text-neutral-500">
             <tr>
               <th className="px-3 py-2">Nama</th>
               <th className="px-3 py-2">Kode</th>
+              <th className="px-3 py-2">Periode Operasional</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {branches.map((b) => (
-              <tr key={b.id} className="border-b border-neutral-100 last:border-0">
+              <tr key={b.id} className="border-b border-neutral-100 last:border-0 align-top">
                 <td className="px-3 py-2">{b.name}</td>
                 <td className="px-3 py-2">{b.code}</td>
+                <td className="px-3 py-2">
+                  <BranchOperationalForm branch={b} />
+                </td>
                 <td className="px-3 py-2">
                   {b.isActive ? (
                     <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Aktif</span>

@@ -168,7 +168,7 @@ export default async function DashboardPage({
           <KpiCard label="Transfer" value={kpi.adaDataRincianTransaksi ? formatAngka(kpi.transfer) : "Belum tersedia"} icon={Landmark} iconBg="bg-blue-50" iconColor="text-blue-600" />
           <KpiCard label="E-Wallet" value={kpi.adaDataRincianTransaksi ? formatAngka(kpi.eWallet) : "Belum tersedia"} icon={Smartphone} iconBg="bg-purple-50" iconColor="text-purple-600" />
           <KpiCard label="Tarik Tunai" value={kpi.adaDataRincianTransaksi ? formatAngka(kpi.tarikTunai) : "Belum tersedia"} icon={Banknote} iconBg="bg-amber-50" iconColor="text-amber-600" />
-          <KpiCard label="Hari Laporan Terinput" value={String(kpi.hariLaporanTerinput)} icon={CalendarCheck} iconBg="bg-sky-50" iconColor="text-sky-600" keterangan={`dari ${kpi.hariOperasional} hari kalender`} />
+          <KpiCard label="Hari Laporan Terinput" value={String(kpi.hariLaporanTerinput)} icon={CalendarCheck} iconBg="bg-sky-50" iconColor="text-sky-600" keterangan={`dari ${kpi.hariOperasional} hari ${params.branchId ? "operasional cabang" : "kalender"}`} />
           <KpiCard
             label="Kelengkapan Data"
             value={kpi.kelengkapanDataPersen !== null ? formatPersen(kpi.kelengkapanDataPersen) : "Belum tersedia"}
@@ -283,7 +283,7 @@ export default async function DashboardPage({
             <p className="text-lg font-semibold tabular-nums">{kpi.hariLaporanTerinput}</p>
           </div>
           <div>
-            <p className="text-xs text-neutral-500">Hari Kalender Periode</p>
+            <p className="text-xs text-neutral-500">{params.branchId ? "Hari Operasional Cabang" : "Hari Kalender Periode"}</p>
             <p className="text-lg font-semibold tabular-nums">{kpi.hariOperasional}</p>
           </div>
           <div>
@@ -296,7 +296,9 @@ export default async function DashboardPage({
           </div>
         </div>
         <p className="mt-3 text-xs text-neutral-500">
-          Catatan: aplikasi Ekek belum mencatat status Buka/Libur per hari, jadi &quot;Hari Kalender Periode&quot; di sini adalah seluruh hari kalender pada periode (bukan hari operasional setelah dikurangi hari libur).
+          {params.branchId
+            ? "\"Hari Operasional Cabang\" dihitung dari tanggal mulai/tutup operasi cabang ini yang beririsan dengan periode - hari sebelum cabang mulai atau setelah cabang tutup tidak ikut dihitung."
+            : "Catatan: aplikasi Ekek belum mencatat status Buka/Libur per hari, jadi “Hari Kalender Periode” di sini adalah seluruh hari kalender pada periode (bukan hari operasional setelah dikurangi hari libur)."}
         </p>
       </div>
 

@@ -2,10 +2,11 @@ import { computePriorityScore } from "../severity";
 import { SEVERITY_ORDER } from "../severity";
 import { INSIGHT_THRESHOLDS } from "../thresholds";
 import { formatTanggalDaftar } from "../formatters";
+import { getOperationalRangeIntersection } from "@/lib/calculations/operational-period";
 import type { InsightContext, InsightGroupMember, InsightResult, InsightSeverity } from "../types";
 
 export const RULE_ID = "data-completeness";
-export const RULE_VERSION = "1.1.0";
+export const RULE_VERSION = "1.2.0";
 
 function tambahHari(d: Date, n: number): Date {
   return new Date(d.getTime() + n * 86400000);
@@ -27,22 +28,27 @@ type Kandidat = {
   severity: InsightSeverity;
 };
 
-// Kelengkapan dihitung per cabang, diklem ke [max(periodStart, tanggal laporan
-// pertama cabang), min(periodEnd, besok)] - supaya hari sebelum cabang mulai
-// beroperasi dan hari mendatang tidak ikut dihitung sebagai "belum input".
-// Branch tanpa firstReportDate sama sekali (belum pernah lapor sekalipun)
-// sengaja dilewati di sini - itu kasus berbeda dari "beberapa hari bolong".
+// Kelengkapan dihitung per cabang, diklem ke IRISAN periode filter dengan
+// periode operasional cabang (tanggalMulaiOperasi..tanggalTutupOperasi, fallback
+// firstReportDate kalau tanggalMulaiOperasi belum diisi) DAN dibatasi "jangan
+// hitung hari mendatang" - lihat lib/calculations/operational-period.ts.
+// Efeknya: hari sebelum cabang mulai, hari setelah cabang tutup permanen, dan
+// hari mendatang semua otomatis TIDAK masuk ExpectedReportDays maupun
+// MissingDays (section 8 spec periode operasional).
 //
-// Cabang nonaktif TIDAK PERNAH sampai ke sini sama sekali - buildInsightContext
-// hanya mengambil branch dengan isActive=true dari awal, jadi tidak perlu
-// pengecekan status berulang di sini (lihat catatan di context.ts). Skema
-// Branch belum punya field status operasional lain (tutup sementara/libur/dst)
-// selain isActive - keterbatasan ini didokumentasikan, bukan diakali dengan
-// asumsi field yang tidak ada.
+// Branch tanpa firstReportDate DAN tanpa tanggalMulaiOperasi (belum pernah
+// lapor sekalipun, belum dikonfigurasi) sengaja dilewati - tidak ada dasar
+// untuk menentukan kapan seharusnya cabang itu mulai lapor.
+//
+// Cabang yang statusnya Nonaktif SEKARANG tetap bisa jadi kandidat di sini
+// kalau periode filter beririsan dengan periode operasional historisnya
+// (sebelum tanggalTutupOperasi) - status terkini tidak menghapus histori.
 //
 // v1.1.0: kalau >=2 cabang sama-sama bermasalah, digabung jadi SATU insight
 // regional (hindari insight fatigue) - cabang yang jauh lebih kritis dari
 // rata-rata kelompok tetap dapat insight individual TAMBAHAN di luar itu.
+// v1.2.0: ExpectedReportDays diklem ke periode operasional cabang (bukan cuma
+// firstReportDate..besok) - lihat lib/calculations/operational-period.ts.
 export function generateDataCompletenessInsights(context: InsightContext): InsightResult[] {
   const periodStart = context.periodStart.toISOString().slice(0, 10);
   const periodEnd = context.periodEnd.toISOString().slice(0, 10);
@@ -50,14 +56,26 @@ export function generateDataCompletenessInsights(context: InsightContext): Insig
     new Date(Date.UTC(context.today.getUTCFullYear(), context.today.getUTCMonth(), context.today.getUTCDate())),
     1
   );
+  const batasAtasPeriode = context.periodEnd < besok ? context.periodEnd : besok;
 
   const kandidat: Kandidat[] = [];
+  // Cabang yang punya IRISAN periode operasional di periode ini (dievaluasi
+  // sama sekali), dipakai sebagai penyebut "X dari Y cabang" pada pesan grup -
+  // BUKAN context.branches.length yang juga menghitung cabang yang sudah tutup/
+  // belum mulai di periode ini (mis. AB2 setelah 17 Maret 2026).
+  let totalCabangOperasional = 0;
   for (const branch of context.branches) {
-    if (!branch.firstReportDate) continue;
+    if (!branch.firstReportDate && !branch.tanggalMulaiOperasi) continue;
 
-    const expectedStart = branch.firstReportDate > context.periodStart ? branch.firstReportDate : context.periodStart;
-    const expectedEnd = context.periodEnd < besok ? context.periodEnd : besok;
-    if (expectedStart >= expectedEnd) continue;
+    const irisan = getOperationalRangeIntersection(
+      branch,
+      context.periodStart,
+      batasAtasPeriode,
+      branch.firstReportDate
+    );
+    if (!irisan) continue;
+    totalCabangOperasional++;
+    const { start: expectedStart, end: expectedEnd } = irisan;
 
     const expectedDays = Math.round((expectedEnd.getTime() - expectedStart.getTime()) / 86400000);
     const reportedDates = new Set(
@@ -153,7 +171,7 @@ export function generateDataCompletenessInsights(context: InsightContext): Insig
       sampleSize: totalExpectedDays,
     }),
     title: "Pelaporan wilayah belum lengkap",
-    message: `${kandidat.length} dari ${context.branches.length} cabang belum menginput laporan lengkap pada periode ${context.periodLabel}: ${daftarCabang}.`,
+    message: `${kandidat.length} dari ${totalCabangOperasional} cabang yang operasional pada periode ini belum menginput laporan lengkap pada periode ${context.periodLabel}: ${daftarCabang}.`,
     action: "Hubungi penanggung jawab cabang dan lengkapi laporan yang belum diinput.",
     entityType: "region",
     entityName: "Wilayah Ekek",
